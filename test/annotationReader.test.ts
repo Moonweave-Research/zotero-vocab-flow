@@ -41,3 +41,20 @@ test('skips non-PDF attachments and empty annotation text', () => {
 
   assert.deepEqual(readUnderlineTexts(item), ['word']);
 });
+
+test('sorts within a single PDF by sortIndex (not insertion order)', () => {
+  const pdf = {
+    isPDFAttachment: () => true,
+    getAnnotations: () => [
+      annotation('underline', 'later', '00005|00010'),
+      annotation('underline', 'earlier', '00005|00002')
+    ]
+  };
+  setupZotero({ 30: pdf });
+  assert.deepEqual(readUnderlineTexts({ getAttachments: () => [30] }), ['earlier', 'later']);
+});
+
+test('returns empty array when getAttachments returns null', () => {
+  setupZotero({});
+  assert.deepEqual(readUnderlineTexts({ getAttachments: () => null }), []);
+});

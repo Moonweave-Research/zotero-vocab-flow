@@ -16,8 +16,11 @@ export function readUnderlineTexts(item: any): string[] {
     }
   }
 
-  underlines.sort((left, right) =>
-    String(left.annotationSortIndex ?? '').localeCompare(String(right.annotationSortIndex ?? '')));
+  underlines.sort((left, right) => {
+    const a = String(left.annotationSortIndex ?? '');
+    const b = String(right.annotationSortIndex ?? '');
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
 
   return underlines.map((a) => a.annotationText);
 }
