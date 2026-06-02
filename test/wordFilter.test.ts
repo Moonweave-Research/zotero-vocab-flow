@@ -29,3 +29,7 @@ test('multi-word selection splits into individual tokens', () => {
 test('skips empty/whitespace strings', () => {
   assert.deepEqual(extractWords(['', '   ', 'actuator']), ['actuator']);
 });
+
+test('dedupes across separate array elements', () => {
+  assert.deepEqual(extractWords(['polymer', 'Polymer']), ['polymer']);
+});

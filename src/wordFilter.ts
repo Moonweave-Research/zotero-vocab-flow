@@ -1,7 +1,7 @@
 // Turns raw annotation strings into a deduped list of candidate words.
 // Phase 0 policy: see spec §4.6 (4). No lemmatization, no dictionary.
 
-const LATIN = /[A-Za-zÀ-ɏ]/; // basic Latin + Latin-1/Extended-A (café, Förster)
+const LATIN = /\p{Script=Latin}/u; // Latin script only (café, Förster); excludes ×, ÷, 한글, 그리스
 
 export function extractWords(rawTexts: string[]): string[] {
   const seen = new Set<string>();
@@ -30,5 +30,5 @@ export function extractWords(rawTexts: string[]): string[] {
 
 // Strip leading/trailing punctuation; keep internal hyphen and apostrophe.
 function trimPunctuation(token: string): string {
-  return token.replace(/^[^A-Za-zÀ-ɏ]+/, '').replace(/[^A-Za-zÀ-ɏ]+$/, '');
+  return token.replace(/^[^\p{Script=Latin}]+/u, '').replace(/[^\p{Script=Latin}]+$/u, '');
 }
