@@ -1,6 +1,6 @@
 export class Logger {
-  private static prefix = "[Reading Flow] ";
-  private static debugPref = 'extensions.readingflow.debug';
+  private static prefix = "[Vocab Flow] ";
+  private static debugPref = 'extensions.vocabflow.debug';
 
   static log(message: string, level: number = 3) {
     if (!this.isDebugEnabled()) return;
