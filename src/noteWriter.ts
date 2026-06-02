@@ -14,14 +14,14 @@ export async function writeVocabNote(parent: any, words: string[]): Promise<any>
 function findExistingNote(parent: any): any | null {
   const noteIDs: number[] = parent.getNotes?.() ?? [];
   for (const id of noteIDs) {
-    const note = Zotero.Items.get(id);
+    const note: any = Zotero.Items.get(id);
     if (note?.hasTag?.(VOCAB_TAG)) return note;
   }
   return null;
 }
 
 function createNote(parent: any): any {
-  const note = new Zotero.Item('note');
+  const note = new (Zotero.Item as any)('note');
   note.parentID = parent.id; // zotero-types exposes `parentID` on dataObject, not parentItemID
   return note;
 }
