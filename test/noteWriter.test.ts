@@ -48,3 +48,15 @@ test('updates the existing tagged note instead of creating a duplicate', async (
   assert.doesNotMatch(note.note, /old/);
   assert.ok(note.saved);
 });
+
+test('escapes HTML special chars in words (ampersand before angle brackets)', async () => {
+  const created = fakeNote();
+  (globalThis as any).Zotero = {
+    Items: { get: () => ({}) },
+    Item: function () { return created; }
+  };
+  const note = await writeVocabNote({ id: 7, getNotes: () => [] }, ['H&E', '<tag>']);
+  assert.match(note.note, /H&amp;E/);
+  assert.match(note.note, /&lt;tag&gt;/);
+  assert.doesNotMatch(note.note, /<tag>/);
+});
