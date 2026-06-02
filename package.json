@@ -1,0 +1,17 @@
+{
+  "name": "zotero-vocab-flow",
+  "version": "0.0.1",
+  "description": "Extract underlined words from Zotero PDFs into a vocab list",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test:unit": "node scripts/run-unit-tests.js",
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.0",
+    "typescript": "^5.0.0",
+    "zotero-types": "^0.1.5"
+  }
+}

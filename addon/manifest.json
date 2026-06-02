@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "Zotero Vocab Flow",
+  "version": "0.0.1",
+  "description": "Extract underlined words from Zotero PDFs into a vocab list.",
+  "author": "Reading Flow Team",
+  "applications": {
+    "zotero": {
+      "id": "vocabflow@moon.com",
+      "strict_min_version": "9.0",
+      "strict_max_version": "9.0.*"
+    }
+  },
+  "icons": { "48": "icon.png" }
+}
