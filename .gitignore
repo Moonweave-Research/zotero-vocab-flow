@@ -1,0 +1,5 @@
+node_modules/
+tmp/
+addon/bootstrap.js
+*.xpi
+.DS_Store

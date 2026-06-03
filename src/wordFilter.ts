@@ -1,7 +1,28 @@
 // Turns raw annotation strings into a deduped list of candidate words.
-// Phase 0 policy: see spec §4.6 (4). No lemmatization, no dictionary.
+// No lemmatization or dictionary lookup; only a small stopword filter.
 
 const LATIN = /\p{Script=Latin}/u; // Latin script only (café, Förster); excludes ×, ÷, 한글, 그리스
+const STOPWORDS = new Set([
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'by',
+  'for',
+  'from',
+  'in',
+  'is',
+  'of',
+  'on',
+  'or',
+  'the',
+  'to',
+  'used',
+  'with'
+]);
 
 export function extractWords(rawTexts: string[]): string[] {
   const seen = new Set<string>();
@@ -19,6 +40,7 @@ export function extractWords(rawTexts: string[]): string[] {
       if (!LATIN.test(token)) continue;
 
       const key = token.toLowerCase();
+      if (STOPWORDS.has(key)) continue;
       if (seen.has(key)) continue;
       seen.add(key);
       result.push(token);

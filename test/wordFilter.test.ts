@@ -33,3 +33,10 @@ test('skips empty/whitespace strings', () => {
 test('dedupes across separate array elements', () => {
   assert.deepEqual(extractWords(['polymer', 'Polymer']), ['polymer']);
 });
+
+test('drops common English stopwords from sentence underlines', () => {
+  assert.deepEqual(
+    extractWords(['The LCE matrix and the shell are used to balance stiffness']),
+    ['LCE', 'matrix', 'shell', 'balance', 'stiffness']
+  );
+});

@@ -1,12 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Zotero Vocab Flow",
-  "version": "0.0.1",
-  "description": "Extract underlined words from Zotero PDFs into a vocab list.",
+  "version": "0.1.0",
+  "description": "Build reviewable vocabulary candidates from Zotero PDF underlines.",
   "author": "Reading Flow Team",
   "applications": {
     "zotero": {
       "id": "vocabflow@moon.com",
+      "update_url": "https://example.invalid/vocabflow-updates.json",
       "strict_min_version": "9.0",
       "strict_max_version": "9.0.*"
     }

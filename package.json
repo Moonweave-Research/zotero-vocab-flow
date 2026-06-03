@@ -1,7 +1,7 @@
 {
   "name": "zotero-vocab-flow",
-  "version": "0.0.1",
-  "description": "Extract underlined words from Zotero PDFs into a vocab list",
+  "version": "0.1.0",
+  "description": "Build reviewable vocabulary candidates from Zotero PDF underlines",
   "license": "MIT",
   "main": "src/index.ts",
   "scripts": {
