@@ -24,6 +24,7 @@ The core workflow is:
 - Final vocabulary notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
 - Optional experimental translation aid that fills only blank Korean meanings.
 - Data-safety ownership markers so generated notes are handled separately from user notes.
+- A real 48px plugin icon, with SVG source kept in `addon/icon.svg`.
 
 ## What This Release Does Not Promise
 
@@ -41,7 +42,7 @@ The core workflow is:
 - Build: `npm run build` -> passing.
 - Installed Zotero runtime callback verification covered candidate generation, candidate acceptance, final note creation, cleanup, and DB read-only cleanup checks.
 - Installed Zotero runtime label verification covered the current translation-aid and candidate menu labels.
-- Latest default-profile XPI hash at release prep: `b1012985eeefc9f127f925603b2bf04311fe56b45aef9b69968cb28f4d339fbb`.
+- Latest default-profile XPI hash at release prep: `14b2fd416f5e2dd2abe0fcf0330bd51617682f6d52f34df9d3b6e5347e3a357d`.
 
 ## Known Risks
 

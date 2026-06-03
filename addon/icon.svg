@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="Vocab Flow icon">
+  <defs>
+    <linearGradient id="paper" x1="238" y1="96" x2="736" y2="928" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#f2f5f7"/>
+    </linearGradient>
+    <linearGradient id="card" x1="520" y1="430" x2="840" y2="842" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f9fbfd"/>
+      <stop offset="1" stop-color="#e9eef3"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="28" stdDeviation="32" flood-color="#17212b" flood-opacity=".22"/>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" rx="180" fill="#f7f8f7"/>
+
+  <g filter="url(#shadow)">
+    <path d="M250 104h406l118 122v650c0 42-34 76-76 76H250c-42 0-76-34-76-76V180c0-42 34-76 76-76z" fill="url(#paper)"/>
+    <path d="M656 104v104c0 24 20 44 44 44h98L656 104z" fill="#e8edf2"/>
+    <path d="M238 186c0-18 14-32 32-32h322v134h142v570c0 18-14 32-32 32H270c-18 0-32-14-32-32V186z" fill="none" stroke="#d1d9df" stroke-width="14"/>
+  </g>
+
+  <g stroke-linecap="round">
+    <path d="M326 330h290" stroke="#2d3640" stroke-width="38" opacity=".9"/>
+    <path d="M326 430h244" stroke="#2d3640" stroke-width="38" opacity=".72"/>
+    <path d="M326 532h214" stroke="#2d3640" stroke-width="38" opacity=".62"/>
+    <path d="M318 600c72 18 162 16 246-4" stroke="#4ea652" stroke-width="34"/>
+  </g>
+
+  <path d="M535 650c42-10 78-30 108-60" fill="none" stroke="#b1252d" stroke-width="30" stroke-linecap="round"/>
+  <path d="M640 590l-18 78 80-14" fill="none" stroke="#b1252d" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g filter="url(#shadow)">
+    <rect x="548" y="612" width="300" height="214" rx="40" fill="url(#card)" stroke="#cad4dc" stroke-width="12"/>
+    <path d="M610 685h128" stroke="#2d3640" stroke-width="30" stroke-linecap="round" opacity=".88"/>
+    <path d="M610 754h176" stroke="#2d3640" stroke-width="26" stroke-linecap="round" opacity=".55"/>
+    <circle cx="793" cy="687" r="24" fill="#4ea652"/>
+    <path d="M780 687l12 12 26-32" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

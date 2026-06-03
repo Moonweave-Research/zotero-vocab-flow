@@ -8,6 +8,7 @@
 - [x] Unit tests pass.
 - [x] TypeScript typecheck passes.
 - [x] XPI builds successfully.
+- [x] Plugin icon is a real 48px PNG with SVG source.
 - [x] Local XPI copied to the default Zotero profile.
 - [x] Local/profile XPI hashes match.
 - [x] Installed Zotero runtime menu labels verified.

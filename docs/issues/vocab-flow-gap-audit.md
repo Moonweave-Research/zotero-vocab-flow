@@ -181,7 +181,7 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
   - The generated note selection resolved to its parent item and filled the blank `polymer` meaning as `중합체`.
   - Cleanup trashed note `9962`; read-only immutable DB verification found `deletedItems.itemID=9962` and `active_temp_vocab_notes=0`.
   - Final rebuilt XPI was recopied to the default profile after documentation updates; final local/profile hash: `31114930e10d8aebc138aa726129be463953f52b696ec29ca2f332f949cc0050`.
-- Final rebuilt XPI after candidate-stage clarity, bilingual wording, translation-aid positioning, and v0.1.0 release prep was recopied to the default profile; final local/profile hash: `b1012985eeefc9f127f925603b2bf04311fe56b45aef9b69968cb28f4d339fbb`.
+- Final rebuilt XPI after candidate-stage clarity, bilingual wording, translation-aid positioning, v0.1.0 release prep, and plugin icon replacement was recopied to the default profile; final local/profile hash: `14b2fd416f5e2dd2abe0fcf0330bd51617682f6d52f34df9d3b6e5347e3a357d`.
 
 ## Acceptance Checklist
 

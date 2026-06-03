@@ -3,6 +3,21 @@
   "version": "0.1.0",
   "description": "Build reviewable vocabulary candidates from Zotero PDF underlines",
   "license": "MIT",
+  "homepage": "https://github.com/moonweave/zotero-vocab-flow#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moonweave/zotero-vocab-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/moonweave/zotero-vocab-flow/issues"
+  },
+  "keywords": [
+    "zotero",
+    "zotero-plugin",
+    "vocabulary",
+    "pdf-annotations",
+    "research-tools"
+  ],
   "main": "src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
