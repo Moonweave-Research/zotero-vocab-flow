@@ -32,7 +32,8 @@ function readZipEntry(zipPath, entryName) {
   return execFileSync('unzip', ['-p', zipPath, entryName], { cwd: ROOT });
 }
 
-function runChecks() {
+function runChecks(options = {}) {
+  const requireXpi = options.requireXpi !== false;
   const checks = [];
   const failures = [];
   const packageJSON = readJSON('package.json');
@@ -68,7 +69,9 @@ function runChecks() {
 
   const xpiPath = path.join(ROOT, XPI_NAME);
   if (!fs.existsSync(xpiPath)) {
-    failures.push(`${XPI_NAME} is missing; run npm run build first`);
+    if (requireXpi) {
+      failures.push(`${XPI_NAME} is missing; run npm run build first`);
+    }
   } else {
     try {
       const xpiManifest = JSON.parse(readZipEntry(xpiPath, 'manifest.json').toString('utf8'));

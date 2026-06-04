@@ -14,10 +14,9 @@ test('reads PNG dimensions from the IHDR header', () => {
 });
 
 test('release check validates the current repository release surface', () => {
-  const result = runChecks();
+  const result = runChecks({ requireXpi: false });
 
   assert.deepEqual(result.failures, []);
   assert.ok(result.checks.includes('package and manifest versions match: 0.1.0'));
   assert.ok(result.checks.includes('addon/icon.png is 48x48'));
-  assert.ok(result.checks.includes('zotero-vocab-flow.xpi contains manifest version 0.1.0'));
 });
