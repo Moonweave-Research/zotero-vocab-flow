@@ -42,7 +42,7 @@ The core workflow is:
 - Build: `npm run build` -> passing.
 - Installed Zotero runtime callback verification covered candidate generation, candidate acceptance, final note creation, cleanup, and DB read-only cleanup checks.
 - Installed Zotero runtime label verification covered the current translation-aid and candidate menu labels.
-- Latest default-profile XPI hash at release prep: `14b2fd416f5e2dd2abe0fcf0330bd51617682f6d52f34df9d3b6e5347e3a357d`.
+- Latest default-profile XPI hash at release prep: `5515f32cb536bac99d9be67724d8904185ad2b0c97ecc239fec8b44deaca9eb3`.
 
 ## Known Risks
 

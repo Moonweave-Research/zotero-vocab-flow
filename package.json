@@ -22,7 +22,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:unit": "node scripts/run-unit-tests.js",
-    "build": "node build.js"
+    "build": "node build.js",
+    "release:check": "npm run test:unit && npm run typecheck && npm run build && node scripts/release-check.js"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",

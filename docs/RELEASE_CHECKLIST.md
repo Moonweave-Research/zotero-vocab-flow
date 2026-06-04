@@ -13,10 +13,12 @@
 - [x] Local/profile XPI hashes match.
 - [x] Installed Zotero runtime menu labels verified.
 - [x] Read-only DB cleanup check reports no active generated test notes.
+- [x] `npm run release:check` validates test, typecheck, build, version sync, XPI manifest, and icon size.
+- [x] GitHub Actions CI runs the release check on push and pull request.
 
 ## Before Public Stable
 
 - [ ] Add positive runtime fixtures for all supported annotation colors.
 - [ ] Replace the inert `update_url` with a real update endpoint or remove it after install behavior is revalidated.
 - [ ] Decide whether translation providers remain menu-only or move to a settings pane.
-- [ ] Add a release signing/distribution process if publishing beyond local beta users.
+- [ ] Add release signing/distribution beyond GitHub prerelease assets if publishing beyond local beta users.
