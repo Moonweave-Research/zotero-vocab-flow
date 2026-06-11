@@ -27,7 +27,7 @@ export function describeCandidateColor(color: string = DEFAULT_CANDIDATE_COLOR):
 
 export function readUnderlineTexts(item: any, options: ReadUnderlineOptions = { scope: 'color' }): string[] {
   const attachmentIDs: number[] = item.getAttachments() ?? [];
-  const texts: string[] = [];
+  const underlines: any[] = [];
   const scope = options.scope ?? 'color';
   const color = normalizeColor(options.color ?? DEFAULT_CANDIDATE_COLOR);
   const tagName = normalizeTag(options.tagName ?? DEFAULT_CANDIDATE_TAG);
@@ -36,7 +36,6 @@ export function readUnderlineTexts(item: any, options: ReadUnderlineOptions = { 
     const att = Zotero.Items.get(id);
     if (!att?.isPDFAttachment?.()) continue;
     const annotations = att.getAnnotations(false) ?? []; // includeTrashed = false
-    const underlines: any[] = [];
     for (const a of annotations) {
       if (a.annotationType !== 'underline') continue;
       if (!a.annotationText || !a.annotationText.trim()) continue;
@@ -44,15 +43,15 @@ export function readUnderlineTexts(item: any, options: ReadUnderlineOptions = { 
       if (scope === 'tag' && !hasAnnotationTag(a, tagName)) continue;
       underlines.push(a);
     }
-    underlines.sort((left, right) => {
-      const a = String(left.annotationSortIndex ?? '');
-      const b = String(right.annotationSortIndex ?? '');
-      return a < b ? -1 : a > b ? 1 : 0;
-    });
-    texts.push(...underlines.map((a) => a.annotationText));
   }
 
-  return texts;
+  underlines.sort((left, right) => {
+    const a = String(left.annotationSortIndex ?? '');
+    const b = String(right.annotationSortIndex ?? '');
+    return a < b ? -1 : a > b ? 1 : 0;
+  });
+
+  return underlines.map((a) => a.annotationText);
 }
 
 function isColorUnderline(annotation: any, expectedColor: string): boolean {

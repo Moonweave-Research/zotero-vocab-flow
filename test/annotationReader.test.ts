@@ -12,7 +12,7 @@ function setupZotero(attachmentsById: Record<number, any>) {
   };
 }
 
-test('collects only the default candidate-color underline annotations, preserving PDF order and sorting within each PDF', () => {
+test('collects only the default candidate-color underline annotations and globally sorts them by sortIndex', () => {
   const pdf1 = {
     isPDFAttachment: () => true,
     getAnnotations: (includeTrashed: boolean) => {
@@ -31,7 +31,7 @@ test('collects only the default candidate-color underline annotations, preservin
   setupZotero({ 10: pdf1, 11: pdf2 });
   const item = { getAttachments: () => [10, 11] };
 
-  assert.deepEqual(readUnderlineTexts(item), ['beta', 'alpha']);
+  assert.deepEqual(readUnderlineTexts(item), ['alpha', 'beta']);
 });
 
 test('can collect all underline annotations for the advanced all-underlines mode', () => {
@@ -114,7 +114,7 @@ test('sorts within a single PDF by sortIndex (not insertion order)', () => {
   assert.deepEqual(readUnderlineTexts({ getAttachments: () => [30] }), ['earlier', 'later']);
 });
 
-test('preserves PDF attachment order before sorting within each PDF', () => {
+test('globally sorts matching underlines across multiple PDFs by annotationSortIndex', () => {
   const pdf1 = {
     isPDFAttachment: () => true,
     getAnnotations: () => [annotation('underline', 'from first pdf', '00002')]
@@ -125,7 +125,7 @@ test('preserves PDF attachment order before sorting within each PDF', () => {
   };
   setupZotero({ 40: pdf1, 41: pdf2 });
 
-  assert.deepEqual(readUnderlineTexts({ getAttachments: () => [40, 41] }), ['from first pdf', 'from second pdf']);
+  assert.deepEqual(readUnderlineTexts({ getAttachments: () => [40, 41] }), ['from second pdf', 'from first pdf']);
 });
 
 test('returns empty array when getAttachments returns null', () => {
