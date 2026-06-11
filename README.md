@@ -15,7 +15,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 3. Review the generated `단어장 후보 (...)` note.
 4. Change unwanted rows from `저장` to `제외` or `x`.
 5. Run `selected candidates로 단어장 만들기`.
-6. Fill `한국어 뜻 (Korean meaning)` manually, or use the optional experimental translation aid.
+6. Fill `한국어 뜻 (Korean meaning)` manually, or use the optional inaccurate free translation aid.
 
 ## Main Features
 
@@ -25,7 +25,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 - Candidate notes with source context and `Review before translation` guidance.
 - Exclusion persistence across candidate regeneration.
 - Final vocab notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
-- Optional experimental translation aid that fills only blank Korean meanings.
+- Optional inaccurate free translation aid that fills only blank Korean meanings after opt-in.
 
 ## Install
 
@@ -50,7 +50,7 @@ Translation is not the core product promise. It is an optional aid.
 - It is disabled by default.
 - It only fills blank `Korean meaning` cells.
 - It preserves manually entered meanings.
-- The `google-free` provider is experimental and may be blocked, rate-limited, or inaccurate.
+- The `google-free` provider is an inaccurate free aid. It sends terms without source context, may be blocked or rate-limited, and must be reviewed manually.
 - Terms can be sent to an external Google Translate endpoint when the aid is enabled.
 
 ## Release Status

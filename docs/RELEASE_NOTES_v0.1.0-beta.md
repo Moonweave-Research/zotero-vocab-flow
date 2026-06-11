@@ -12,7 +12,7 @@ The core workflow is:
 2. Build `term candidates`.
 3. Review and exclude noisy candidates.
 4. Save selected candidates into a final `단어장 (...)` note.
-5. Optionally fill blank `Korean meanings` with the experimental translation aid.
+5. Optionally fill blank `Korean meanings` with the inaccurate free translation aid.
 
 ## What's Included
 
@@ -22,7 +22,7 @@ The core workflow is:
 - Candidate review notes with source context and `Review before translation` guidance.
 - Exclusion persistence through `제외`, `x`, and legacy exclusion tokens.
 - Final vocabulary notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
-- Optional experimental translation aid that fills only blank Korean meanings.
+- Optional inaccurate free translation aid that fills only blank Korean meanings after opt-in.
 - Data-safety ownership markers so generated notes are handled separately from user notes.
 - A real 48px plugin icon, with SVG source kept in `addon/icon.svg`.
 
@@ -32,7 +32,7 @@ The core workflow is:
 - It does not treat every underline as final vocabulary by default.
 - It does not edit PDF annotations or user notes outside generated Vocab Flow blocks.
 - It does not guarantee dictionary-grade or context-perfect Korean translation.
-- It does not guarantee availability, rate limits, or long-term stability of the `google-free` translation endpoint.
+- It does not guarantee research-term quality, availability, rate limits, or long-term stability of the `google-free` translation endpoint.
 - It does not yet include a full settings pane or multiple translation providers.
 
 ## Verification Evidence
@@ -48,5 +48,5 @@ The core workflow is:
 
 - Candidate quality is heuristic and may miss domain terms or keep weak terms.
 - Positive annotation-level runtime coverage is strongest for green/all-underlines workflows; other color menus are registered and labeled but need broader real-annotation fixtures before a stable release.
-- Translation is intentionally framed as an aid. Users should review meanings manually.
+- Translation is intentionally framed as a weak aid. Users should review meanings manually.
 - The manifest currently keeps an inert `update_url` because Zotero 9 install behavior was validated with that shape during local testing.

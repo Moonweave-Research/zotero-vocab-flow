@@ -17,8 +17,7 @@ test('drops noisy function words and malformed OCR fragments while retaining dom
     'knots',
     'shell',
     'high stiffness',
-    'strength',
-    'enhance'
+    'strength'
   ]);
 });
 
@@ -64,4 +63,14 @@ test('dehyphenates line-wrapped words before extracting vocab candidates', () =>
   assert.ok(labels.includes('polymer'));
   assert.ok(!labels.includes('poly'));
   assert.ok(labels.includes('actuator'));
+});
+
+test('rejects mistranslation-prone generic words and OCR-confusable non-terms', () => {
+  const candidates = generateVocabCandidates([
+    'The valance elements remained stable while the valence state changed.'
+  ]);
+
+  assert.deepEqual(candidates.map((candidate) => candidate.label), [
+    'valence'
+  ]);
 });

@@ -71,7 +71,7 @@ Korean meaning fill is an optional aid and is disabled by default.
 Supported provider values:
 
 - `off`: default. No network request is made.
-- `google-free`: experimental no-key Google Translate endpoint. This is free to try but not guaranteed for availability, rate limits, or long-term stability.
+- `google-free`: inaccurate free no-key Google Translate endpoint. It sends terms without source context and is not guaranteed for research-term quality, availability, rate limits, or long-term stability.
 
 The translation command must:
 
@@ -111,5 +111,5 @@ for generated test artifacts after cleanup.
 - The six color hex values must match Zotero's stored annotation colors. Green has been positively runtime-verified on item `9761`; other colors need positive annotation-level runtime fixtures before release confidence is complete.
 - Candidate quality is heuristic. Domain-specific phrase extraction is not a dictionary or language model.
 - The 30-candidate confirmation threshold is heuristic and may need adjustment after real use.
-- The `google-free` translation provider is experimental and may be rate-limited or blocked. It should remain opt-in and framed as a translation aid, not as Vocab Flow's core value.
+- The `google-free` translation provider is inaccurate, context-free, and may be rate-limited or blocked. It should remain opt-in, clearly warned, and framed as a weak aid, not as Vocab Flow's core value.
 - Translation provider control is menu-based rather than a full settings pane. This is intentional for the current single-provider scope, but a settings pane may be needed if more providers are added.

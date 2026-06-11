@@ -51,7 +51,7 @@ test('registers menu commands for user-facing translation provider control', () 
   assert.ok(l10nIDs.includes('vocab-flow-translation-enable-google-free'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-disable'));
   const labels = registered.menus[0].menus.map((menu: any) => menu.label);
-  assert.ok(labels.includes('실험 번역 보조 기능 켜기...'));
+  assert.ok(labels.includes('부정확할 수 있는 무료 번역 보조 기능 켜기...'));
   assert.ok(labels.includes('번역 보조 기능 끄기'));
 });
 
@@ -75,7 +75,7 @@ test('enables the experimental translation provider through the menu after confi
 
   assert.equal(confirmed, true);
   assert.deepEqual(providers, ['google-free']);
-  assert.equal(toasts[0], '실험 번역 보조 기능을 켰습니다');
+  assert.equal(toasts[0], '부정확할 수 있는 무료 번역 보조 기능을 켰습니다');
 });
 
 test('does not enable translation when the provider confirmation is canceled', async () => {
@@ -93,7 +93,7 @@ test('does not enable translation when the provider confirmation is canceled', a
   await manager.runEnableGoogleFreeTranslationForTesting();
 
   assert.deepEqual(providers, []);
-  assert.equal(toasts[0], '실험 번역 보조 기능 설정을 취소했습니다');
+  assert.equal(toasts[0], '부정확할 수 있는 무료 번역 보조 기능 설정을 취소했습니다');
 });
 
 test('disables translation through the menu', async () => {
@@ -391,7 +391,7 @@ test('reports translation as disabled when no translation provider is configured
   await manager.runTranslateForTesting();
 
   assert.equal(translated, false);
-  assert.match(toasts[0], /실험 번역 보조 기능 켜기/);
+  assert.match(toasts[0], /부정확할 수 있는 무료 번역 보조 기능 켜기/);
 });
 
 test('summarizes translated final vocab notes', async () => {

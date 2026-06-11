@@ -2,7 +2,7 @@ import { Candidate } from './candidateNoteWriter';
 
 const LATIN = /\p{Script=Latin}/u;
 const TECHNICAL_ACRONYM = /^[A-Z][A-Za-z0-9-]*s?$/;
-const MALFORMED_FRAGMENTS = new Set(['stiffn', 'ncreasing', 'flippin', 'ntwi', 'ntw', 'yeff']);
+const MALFORMED_FRAGMENTS = new Set(['stiffn', 'ncreasing', 'flippin', 'ntwi', 'ntw', 'valance', 'yeff']);
 const STOPWORDS = new Set([
   'a',
   'an',
@@ -19,6 +19,9 @@ const STOPWORDS = new Set([
   'by',
   'calculated',
   'different',
+  'changed',
+  'elements',
+  'enhance',
   'error',
   'for',
   'from',
@@ -37,6 +40,8 @@ const STOPWORDS = new Set([
   'or',
   'our',
   'samples',
+  'stable',
+  'state',
   'that',
   'the',
   'their',
@@ -46,8 +51,10 @@ const STOPWORDS = new Set([
   'to',
   'up',
   'used',
+  'remained',
   'we',
   'were',
+  'while',
   'with'
 ]);
 

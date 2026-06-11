@@ -112,7 +112,7 @@ export class VocabFlowMenuManager {
               {
                 menuType: 'menuitem',
                 l10nID: 'vocab-flow-translation-enable-google-free',
-                label: '실험 번역 보조 기능 켜기...',
+                label: '부정확할 수 있는 무료 번역 보조 기능 켜기...',
                 onCommand: () => this.handleCommand('translation-enable', () => this.runEnableGoogleFreeTranslation())
               },
               {
@@ -236,7 +236,7 @@ export class VocabFlowMenuManager {
 
     const provider = (this.deps.getTranslationProvider ?? DEFAULT_DEPS.getTranslationProvider)!();
     if (provider === 'off') {
-      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow > 실험 번역 보조 기능 켜기...를 먼저 실행하세요');
+      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow > 부정확할 수 있는 무료 번역 보조 기능 켜기...를 먼저 실행하세요');
       return;
     }
     const confirmExternal = this.deps.confirmExternalTranslation ?? DEFAULT_DEPS.confirmExternalTranslation;
@@ -277,12 +277,12 @@ export class VocabFlowMenuManager {
   private async runEnableGoogleFreeTranslation() {
     const confirm = this.deps.confirmEnableTranslation ?? DEFAULT_DEPS.confirmEnableTranslation;
     if (!confirm!()) {
-      this.deps.toast('실험 번역 보조 기능 설정을 취소했습니다');
+      this.deps.toast('부정확할 수 있는 무료 번역 보조 기능 설정을 취소했습니다');
       return;
     }
     const setProvider = this.deps.setTranslationProvider ?? DEFAULT_DEPS.setTranslationProvider;
     setProvider!('google-free');
-    this.deps.toast('실험 번역 보조 기능을 켰습니다');
+    this.deps.toast('부정확할 수 있는 무료 번역 보조 기능을 켰습니다');
   }
 
   private async runDisableTranslation() {
@@ -392,7 +392,7 @@ function confirmExternalTranslation(provider: Exclude<TranslationProvider, 'off'
 }
 
 function confirmEnableTranslation(): boolean {
-  const message = '실험 번역 보조 기능을 켜면 영어 단어/구가 외부 Google Translate 엔드포인트로 전송될 수 있습니다. 이 기능은 후보 검토를 대체하지 않으며 안정성, 속도, 한도는 보장되지 않습니다. 계속할까요?';
+  const message = '부정확할 수 있는 무료 번역 보조 기능을 켜면 영어 단어/구가 문맥 없이 외부 Google Translate 엔드포인트로 전송될 수 있습니다. 연구 용어 번역 품질, 안정성, 속도, 한도는 보장되지 않습니다. 직접 검토할 때만 사용하세요. 계속할까요?';
   const win = Zotero.getMainWindow?.();
   if (typeof win?.confirm === 'function') return win.confirm(message);
   if (typeof globalThis.confirm === 'function') return globalThis.confirm(message);
