@@ -2,20 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { acceptCandidatesForItem } from '../src/candidateAccepter';
 
-test('writes only accepted candidate labels to the final vocab note', async () => {
+test('writes accepted candidates with source context to the final vocab note', async () => {
   const toasts: string[] = [];
-  const written: string[][] = [];
+  const written: unknown[][] = [];
   let discarded = false;
+  const accepted = [
+    { label: 'LCE matrix', type: 'phrase' as const, sourceText: 'The LCE matrix stiffens.', sourceIndex: 2 },
+    { label: 'CNTs', type: 'word' as const, sourceText: 'CNTs align under strain.', sourceIndex: 5 }
+  ];
 
   const result = await acceptCandidatesForItem({ id: 7 }, {
-    readAcceptedCandidateLabels: () => ['LCE matrix', 'CNTs'],
+    readAcceptedCandidates: () => accepted,
     writeVocabNote: async (_parent, words) => { written.push(words); return {}; },
     discardCandidateNote: async () => { discarded = true; },
     toast: (message) => { toasts.push(message); }
   });
 
   assert.deepEqual(result, { status: 'accepted', wordCount: 2 });
-  assert.deepEqual(written, [['LCE matrix', 'CNTs']]);
+  assert.deepEqual(written, [accepted]);
   assert.equal(discarded, true);
   assert.equal(toasts[0], '2개 후보를 단어장에 저장했습니다');
 });
@@ -25,7 +29,7 @@ test('does not create a final note when no candidates are accepted', async () =>
   const toasts: string[] = [];
 
   const result = await acceptCandidatesForItem({ id: 7 }, {
-    readAcceptedCandidateLabels: () => [],
+    readAcceptedCandidates: () => [],
     writeVocabNote: async () => { wrote = true; return {}; },
     discardCandidateNote: async () => { throw new Error('should not discard candidate note'); },
     toast: (message) => { toasts.push(message); }

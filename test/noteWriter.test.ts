@@ -33,6 +33,42 @@ test('creates a new tagged note when none exists', async () => {
   assert.ok(note.saved);
 });
 
+test('stores source context metadata on final vocab rows when provided', async () => {
+  const created = fakeNote();
+  (globalThis as any).Zotero = {
+    Items: { get: () => ({}) },
+    Item: function () { return created; }
+  };
+
+  const note = await writeVocabNote({ id: 5, getNotes: () => [] }, [
+    { label: 'valence', sourceText: 'The valence state changed.', sourceIndex: 3 },
+    { label: 'H&E', sourceText: 'H&E staining was used.', sourceIndex: 4 }
+  ]);
+
+  assert.match(note.note, /data-vocab-flow-word="valence" data-vocab-flow-source-index="3" data-vocab-flow-source-text="The valence state changed\."/);
+  assert.match(note.note, /data-vocab-flow-word="H&amp;E" data-vocab-flow-source-index="4" data-vocab-flow-source-text="H&amp;E staining was used\."/);
+});
+
+test('preserves existing source context metadata when regenerating final vocab rows', async () => {
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<section data-vocab-flow="words">',
+    '<h2>Vocab (1)</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-word="valence" data-vocab-flow-source-index="3" data-vocab-flow-source-text="The valence state changed."><td>valence</td><td>원자가</td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) },
+    Item: function () { throw new Error('should not create a new note'); }
+  };
+
+  const note = await writeVocabNote({ id: 5, getNotes: () => [99] }, ['valence']);
+
+  assert.match(note.note, /data-vocab-flow-word="valence" data-vocab-flow-source-index="3" data-vocab-flow-source-text="The valence state changed."><td>valence<\/td><td>원자가<\/td>/);
+});
+
 test('updates the existing tagged note instead of creating a duplicate', async () => {
   const existing = fakeNote([VOCAB_TAG]);
   existing.note = '<p data-vocab-flow="words">old</p>';

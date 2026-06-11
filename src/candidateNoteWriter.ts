@@ -14,6 +14,8 @@ export interface Candidate {
   sourceIndex: number;
 }
 
+export type AcceptedCandidate = Candidate;
+
 interface ExistingCandidateState {
   state: 'candidate' | 'excluded';
   rowHtml: string;
@@ -36,11 +38,20 @@ export async function writeCandidateNote(parent: any, candidates: Candidate[], o
 }
 
 export function readAcceptedCandidateLabels(parent: any): string[] {
+  return readAcceptedCandidates(parent).map((candidate) => candidate.label);
+}
+
+export function readAcceptedCandidates(parent: any): AcceptedCandidate[] {
   const note = findExistingCandidateNote(parent);
   if (!note) return [];
   return extractCandidateRows(getNoteHtml(note))
     .filter((row) => row.state === 'candidate')
-    .map((row) => row.label);
+    .map((row) => ({
+      label: row.label,
+      type: row.type,
+      sourceText: row.sourceText,
+      sourceIndex: row.sourceIndex
+    }));
 }
 
 export function countAcceptedCandidateLabels(parent: any): number {
@@ -126,8 +137,9 @@ function renderRow(candidate: Candidate, state: 'candidate' | 'excluded'): strin
   const attr = escapeAttribute(candidate.label);
   const decision = state === 'candidate' ? '저장' : '제외';
   const source = escapeHtml(truncateSourceContext(candidate.sourceText));
+  const sourceTextAttr = escapeAttribute(candidate.sourceText);
   return [
-    `<tr data-vocab-flow-candidate="${attr}" data-vocab-flow-state="${state}" data-vocab-flow-type="${candidate.type}">`,
+    `<tr data-vocab-flow-candidate="${attr}" data-vocab-flow-state="${state}" data-vocab-flow-type="${candidate.type}" data-vocab-flow-source-index="${candidate.sourceIndex}" data-vocab-flow-source-text="${sourceTextAttr}">`,
     `<td data-vocab-flow-role="candidate">${label}</td>`,
     `<td data-vocab-flow-role="decision">${decision}</td>`,
     `<td data-vocab-flow-role="source">#${candidate.sourceIndex}: ${source}</td>`,
@@ -146,18 +158,60 @@ function extractExistingStates(html: string): Map<string, ExistingCandidateState
   return states;
 }
 
-function extractCandidateRows(html: string): Array<{ label: string; state: 'candidate' | 'excluded'; rowHtml: string }> {
-  const rows: Array<{ label: string; state: 'candidate' | 'excluded'; rowHtml: string }> = [];
+function extractCandidateRows(html: string): Array<AcceptedCandidate & { state: 'candidate' | 'excluded'; rowHtml: string }> {
+  const rows: Array<AcceptedCandidate & { state: 'candidate' | 'excluded'; rowHtml: string }> = [];
   const rowPattern = /<tr[^>]*data-vocab-flow-candidate="([^"]*)"[^>]*data-vocab-flow-state="(candidate|excluded)"[^>]*>[\s\S]*?<\/tr>/g;
   for (const match of html.matchAll(rowPattern)) {
     const decision = extractDecision(match[0]) ?? match[2];
+    const source = extractSource(match[0]);
     rows.push({
       label: decodeHtml(match[1]),
+      type: extractCandidateType(match[0]),
+      sourceText: source.sourceText,
+      sourceIndex: source.sourceIndex,
       state: decision === 'excluded' ? 'excluded' : 'candidate',
       rowHtml: match[0]
     });
   }
   return rows;
+}
+
+function extractCandidateType(rowHtml: string): Candidate['type'] {
+  const attr = extractAttribute(rowHtml, 'data-vocab-flow-type');
+  if (attr === 'phrase') return 'phrase';
+  const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((match) => normalizeCellText(match[1]));
+  return cells[1] === 'phrase' ? 'phrase' : 'word';
+}
+
+function extractSource(rowHtml: string): Pick<Candidate, 'sourceText' | 'sourceIndex'> {
+  const sourceText = extractAttribute(rowHtml, 'data-vocab-flow-source-text');
+  const sourceIndexText = extractAttribute(rowHtml, 'data-vocab-flow-source-index');
+  if (sourceText) {
+    return {
+      sourceText,
+      sourceIndex: Number.parseInt(sourceIndexText ?? '', 10) || 0
+    };
+  }
+
+  const roleMatch = rowHtml.match(/<td[^>]*data-vocab-flow-role="source"[^>]*>([\s\S]*?)<\/td>/);
+  const sourceCell = roleMatch?.[1] ?? [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((match) => match[1])[3] ?? '';
+  const normalized = normalizeCellText(sourceCell);
+  const indexMatch = normalized.match(/^#(\d+):\s*(.*)$/);
+  if (indexMatch) {
+    return {
+      sourceText: indexMatch[2],
+      sourceIndex: Number.parseInt(indexMatch[1], 10)
+    };
+  }
+  return {
+    sourceText: normalized,
+    sourceIndex: 0
+  };
+}
+
+function extractAttribute(html: string, name: string): string | null {
+  const match = html.match(new RegExp(`${name}="([^"]*)"`));
+  return match ? decodeHtml(match[1]) : null;
 }
 
 function extractDecision(rowHtml: string): 'candidate' | 'excluded' | null {

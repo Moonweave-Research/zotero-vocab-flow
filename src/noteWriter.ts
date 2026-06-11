@@ -11,10 +11,24 @@ export type FillMeaningsResult =
   | { status: 'untranslated'; missingCount: number }
   | { status: 'empty' };
 
-export async function writeVocabNote(parent: any, words: string[]): Promise<any> {
+export interface VocabTerm {
+  label: string;
+  sourceText?: string;
+  sourceIndex?: number;
+}
+
+export type VocabTermInput = string | VocabTerm;
+
+interface ExistingTermState {
+  meaning: string;
+  sourceText?: string;
+  sourceIndex?: number;
+}
+
+export async function writeVocabNote(parent: any, words: VocabTermInput[]): Promise<any> {
   const note = findExistingNote(parent) ?? createNote(parent);
   const existingHtml = getNoteHtml(note);
-  note.setNote(mergeGeneratedBlock(existingHtml, buildHtml(words, extractExistingMeanings(existingHtml))));
+  note.setNote(mergeGeneratedBlock(existingHtml, buildHtml(words, extractExistingTerms(existingHtml))));
   if (!note.hasTag(VOCAB_TAG)) note.addTag(VOCAB_TAG);
   await note.saveTx();
   return note;
@@ -74,12 +88,14 @@ function createNote(parent: any): any {
   return note;
 }
 
-function buildHtml(words: string[], meanings: Map<string, string> = new Map()): string {
-  const rows = words.map((word) => {
-    const escaped = escapeHtml(word);
-    const attr = escapeAttribute(word);
-    const meaning = meanings.get(word.toLowerCase()) ?? '';
-    return `<tr data-vocab-flow-word="${attr}"><td>${escaped}</td><td>${meaning}</td></tr>`;
+function buildHtml(words: VocabTermInput[], existingTerms: Map<string, ExistingTermState> = new Map()): string {
+  const rows = words.map((input) => {
+    const term = normalizeTerm(input);
+    const existing = existingTerms.get(term.label.toLowerCase());
+    const escaped = escapeHtml(term.label);
+    const rowAttrs = buildRowAttributes(term, existing);
+    const meaning = existing?.meaning ?? '';
+    return `<tr ${rowAttrs}><td>${escaped}</td><td>${meaning}</td></tr>`;
   }).join('');
   return [
     '<section data-vocab-flow="words">',
@@ -90,6 +106,19 @@ function buildHtml(words: string[], meanings: Map<string, string> = new Map()): 
     '</table>',
     '</section>'
   ].join('');
+}
+
+function normalizeTerm(input: VocabTermInput): VocabTerm {
+  return typeof input === 'string' ? { label: input } : input;
+}
+
+function buildRowAttributes(term: VocabTerm, existing?: ExistingTermState): string {
+  const attrs = [`data-vocab-flow-word="${escapeAttribute(term.label)}"`];
+  const sourceIndex = term.sourceIndex ?? existing?.sourceIndex;
+  const sourceText = term.sourceText ?? existing?.sourceText;
+  if (sourceIndex !== undefined) attrs.push(`data-vocab-flow-source-index="${sourceIndex}"`);
+  if (sourceText) attrs.push(`data-vocab-flow-source-text="${escapeAttribute(sourceText)}"`);
+  return attrs.join(' ');
 }
 
 function escapeHtml(text: string): string {
@@ -112,14 +141,21 @@ function isLegacyGeneratedNote(note: any): boolean {
   return LEGACY_GENERATED_NOTE_PATTERN.test(getNoteHtml(note).trim());
 }
 
-function extractExistingMeanings(html: string): Map<string, string> {
-  const meanings = new Map<string, string>();
+function extractExistingTerms(html: string): Map<string, ExistingTermState> {
+  const terms = new Map<string, ExistingTermState>();
   const rowPattern = /<tr[^>]*data-vocab-flow-word="([^"]*)"[^>]*>\s*<td[^>]*>[\s\S]*?<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/g;
   for (const match of html.matchAll(rowPattern)) {
     const word = decodeHtml(match[1]).toLowerCase();
-    meanings.set(word, match[2]);
+    const rowHtml = match[0];
+    const sourceIndexText = extractAttribute(rowHtml, 'data-vocab-flow-source-index');
+    const sourceIndex = sourceIndexText === null ? undefined : Number.parseInt(sourceIndexText, 10);
+    terms.set(word, {
+      meaning: match[2],
+      sourceText: extractAttribute(rowHtml, 'data-vocab-flow-source-text') ?? undefined,
+      sourceIndex: Number.isFinite(sourceIndex) ? sourceIndex : undefined
+    });
   }
-  return meanings;
+  return terms;
 }
 
 function extractMissingMeaningWords(html: string): string[] {
@@ -142,6 +178,11 @@ function decodeHtml(text: string): string {
     .replace(/&gt;/g, '>')
     .replace(/&lt;/g, '<')
     .replace(/&amp;/g, '&');
+}
+
+function extractAttribute(html: string, name: string): string | null {
+  const match = html.match(new RegExp(`${name}="([^"]*)"`));
+  return match ? decodeHtml(match[1]) : null;
 }
 
 function mergeGeneratedBlock(existingHtml: string, generatedHtml: string): string {

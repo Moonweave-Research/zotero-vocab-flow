@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Candidate, CANDIDATE_TAG, discardCandidateNote, readAcceptedCandidateLabels, writeCandidateNote } from '../src/candidateNoteWriter';
+import { Candidate, CANDIDATE_TAG, discardCandidateNote, readAcceptedCandidateLabels, readAcceptedCandidates, writeCandidateNote } from '../src/candidateNoteWriter';
 
 function fakeNote(tags: string[] = []) {
   const tagSet = new Set(tags);
@@ -60,7 +60,8 @@ test('truncates long source context in the candidate review table', async () => 
   ]);
 
   assert.match(note.note, /aaa\.\.\.<\/td>/);
-  assert.doesNotMatch(note.note, new RegExp(longSource));
+  assert.match(note.note, new RegExp(`data-vocab-flow-source-text="${longSource}"`));
+  assert.doesNotMatch(note.note, new RegExp(`data-vocab-flow-role="source">#1: ${longSource}`));
 });
 
 test('marks candidate color scope in the candidate review note', async () => {
@@ -198,6 +199,34 @@ test('reads 저장 as the active decision token', () => {
   };
 
   assert.deepEqual(readAcceptedCandidateLabels({ id: 7, getNotes: () => [99] }), ['LCE matrix']);
+});
+
+test('reads accepted candidates with source context for final vocab metadata', async () => {
+  const created = fakeNote();
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? created : null) },
+    Item: function () { return created; }
+  };
+  await writeCandidateNote({ id: 7, getNotes: () => [] }, [
+    { label: 'valence', type: 'word', sourceText: 'The valence state changed.', sourceIndex: 3 },
+    { label: 'elements', type: 'word', sourceText: 'The elements remained stable.', sourceIndex: 4 }
+  ]);
+  created.note = created.note.replace(
+    'data-vocab-flow-candidate="elements" data-vocab-flow-state="candidate"',
+    'data-vocab-flow-candidate="elements" data-vocab-flow-state="excluded"'
+  ).replace(
+    'data-vocab-flow-role="decision">저장</td><td data-vocab-flow-role="source">#4:',
+    'data-vocab-flow-role="decision">제외</td><td data-vocab-flow-role="source">#4:'
+  );
+
+  assert.deepEqual(readAcceptedCandidates({ id: 7, getNotes: () => [99] }), [
+    {
+      label: 'valence',
+      type: 'word',
+      sourceText: 'The valence state changed.',
+      sourceIndex: 3
+    }
+  ]);
 });
 
 test('keeps old four-cell candidate notes readable', () => {
