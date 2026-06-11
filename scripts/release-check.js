@@ -13,6 +13,19 @@ function readText(relativePath) {
   return fs.readFileSync(path.join(ROOT, relativePath), 'utf8');
 }
 
+function checkVersionMention(file, expectedText, checks, failures) {
+  try {
+    const text = readText(file);
+    if (text.includes(expectedText)) {
+      checks.push(`${file} mentions ${expectedText}`);
+    } else {
+      failures.push(`${file} does not mention ${expectedText}`);
+    }
+  } catch (error) {
+    failures.push(`${file} check failed: ${error.message}`);
+  }
+}
+
 function readPngSize(buffer) {
   const signature = buffer.subarray(0, 8).toString('hex');
   if (signature !== '89504e470d0a1a0a') {
@@ -47,13 +60,9 @@ function runChecks(options = {}) {
   }
 
   const expectedBeta = `v${version}-beta`;
-  for (const file of ['README.md', 'docs/RELEASE_NOTES_v0.1.0-beta.md', 'docs/RELEASE_CHECKLIST.md']) {
-    const text = readText(file);
-    if (text.includes(expectedBeta)) {
-      checks.push(`${file} mentions ${expectedBeta}`);
-    } else {
-      failures.push(`${file} does not mention ${expectedBeta}`);
-    }
+  const releaseNotesPath = `docs/RELEASE_NOTES_v${version}-beta.md`;
+  for (const file of ['README.md', releaseNotesPath, 'docs/RELEASE_CHECKLIST.md']) {
+    checkVersionMention(file, expectedBeta, checks, failures);
   }
 
   try {

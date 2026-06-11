@@ -37,7 +37,7 @@ The core workflow is:
 
 ## Verification Evidence
 
-- Unit tests: `npm run test:unit` -> 80/80 passing.
+- Unit tests: `npm run test:unit` -> 85/85 passing.
 - TypeScript: `npm run typecheck` -> passing.
 - Build: `npm run build` -> passing.
 - Installed Zotero runtime callback verification covered candidate generation, candidate acceptance, final note creation, cleanup, and DB read-only cleanup checks.

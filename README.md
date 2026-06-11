@@ -59,7 +59,7 @@ Current release: `v0.1.0-beta`
 
 Verified:
 
-- `npm run test:unit` -> 80/80 passing.
+- `npm run test:unit` -> 85/85 passing.
 - `npm run typecheck` -> passing.
 - Zotero runtime validation for menu loading, candidate generation, accept flow, cleanup, and DB read-only cleanup checks.
 
