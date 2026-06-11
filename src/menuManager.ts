@@ -3,7 +3,14 @@ import { AcceptResult, acceptCandidatesForItem } from './candidateAccepter';
 import { countAcceptedCandidateLabels as defaultCandidateCounter } from './candidateNoteWriter';
 import { DEFAULT_CANDIDATE_COLOR, DEFAULT_CANDIDATE_TAG, ReadUnderlineOptions, describeCandidateColor } from './annotationReader';
 import { FillMeaningsResult, countMissingMeanings as defaultMissingMeaningCounter, fillMissingMeanings as defaultMeaningFiller } from './noteWriter';
-import { TranslationProvider, createTranslatorFromPrefs, setTranslationProviderPref } from './translator';
+import {
+  OpenAICompatibleTranslationSettings,
+  TranslationProvider,
+  createTranslatorFromPrefs,
+  getOpenAICompatibleTranslationSettings,
+  setOpenAICompatibleTranslationPrefs,
+  setTranslationProviderPref
+} from './translator';
 import { ExtractResult, extractForItem } from './vocabExtractor';
 import { toast as defaultToast } from './notify';
 
@@ -23,7 +30,9 @@ interface MenuDeps {
   confirmLargeAccept?: (itemCount: number, wordCount: number) => boolean;
   getTranslationProvider?: () => TranslationProvider;
   setTranslationProvider?: (provider: TranslationProvider) => void;
+  setOpenAICompatibleTranslationPrefs?: (settings: OpenAICompatibleTranslationSettings) => void;
   confirmEnableTranslation?: () => boolean;
+  configureOpenAICompatibleTranslation?: () => OpenAICompatibleTranslationSettings | null;
   countMissingMeaningsForItem?: (item: any) => number;
   confirmExternalTranslation?: (provider: Exclude<TranslationProvider, 'off'>) => boolean;
   confirmLargeTranslation?: (itemCount: number, wordCount: number) => boolean;
@@ -38,7 +47,9 @@ const DEFAULT_DEPS: MenuDeps = {
   confirmLargeAccept: confirmLargeAccept,
   getTranslationProvider: () => createTranslatorFromPrefs().provider,
   setTranslationProvider: setTranslationProviderPref,
+  setOpenAICompatibleTranslationPrefs: setOpenAICompatibleTranslationPrefs,
   confirmEnableTranslation: confirmEnableTranslation,
+  configureOpenAICompatibleTranslation: configureOpenAICompatibleTranslation,
   countMissingMeaningsForItem: defaultMissingMeaningCounter,
   confirmExternalTranslation: confirmExternalTranslation,
   confirmLargeTranslation: confirmLargeTranslation,
@@ -117,6 +128,12 @@ export class VocabFlowMenuManager {
               },
               {
                 menuType: 'menuitem',
+                l10nID: 'vocab-flow-translation-configure-openai-compatible',
+                label: 'OpenAI-compatible BYO API 설정...',
+                onCommand: () => this.handleCommand('translation-configure', () => this.runConfigureOpenAICompatibleTranslation())
+              },
+              {
+                menuType: 'menuitem',
                 l10nID: 'vocab-flow-translation-disable',
                 label: '번역 보조 기능 끄기',
                 onCommand: () => this.handleCommand('translation-disable', () => this.runDisableTranslation())
@@ -162,11 +179,15 @@ export class VocabFlowMenuManager {
     await this.runEnableGoogleFreeTranslation();
   }
 
+  public async runConfigureOpenAICompatibleTranslationForTesting() {
+    await this.runConfigureOpenAICompatibleTranslation();
+  }
+
   public async runDisableTranslationForTesting() {
     await this.runDisableTranslation();
   }
 
-  private handleCommand(name: 'extract' | 'accept' | 'translate' | 'translation-enable' | 'translation-disable', run: () => Promise<void>) {
+  private handleCommand(name: 'extract' | 'accept' | 'translate' | 'translation-enable' | 'translation-configure' | 'translation-disable', run: () => Promise<void>) {
     Logger.log(`menu command received: ${name}`);
     return run().catch((e) => Logger.error(`menu command failed: ${name}`, e));
   }
@@ -236,7 +257,7 @@ export class VocabFlowMenuManager {
 
     const provider = (this.deps.getTranslationProvider ?? DEFAULT_DEPS.getTranslationProvider)!();
     if (provider === 'off') {
-      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow > 부정확할 수 있는 무료 번역 보조 기능 켜기...를 먼저 실행하세요');
+      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow에서 무료 번역 보조 기능을 켜거나 OpenAI-compatible BYO API를 설정하세요');
       return;
     }
     const confirmExternal = this.deps.confirmExternalTranslation ?? DEFAULT_DEPS.confirmExternalTranslation;
@@ -283,6 +304,20 @@ export class VocabFlowMenuManager {
     const setProvider = this.deps.setTranslationProvider ?? DEFAULT_DEPS.setTranslationProvider;
     setProvider!('google-free');
     this.deps.toast('부정확할 수 있는 무료 번역 보조 기능을 켰습니다');
+  }
+
+  private async runConfigureOpenAICompatibleTranslation() {
+    const configure = this.deps.configureOpenAICompatibleTranslation ?? DEFAULT_DEPS.configureOpenAICompatibleTranslation;
+    const settings = configure!();
+    if (!settings) {
+      this.deps.toast('OpenAI-compatible BYO API 설정을 취소했습니다');
+      return;
+    }
+    const setPrefs = this.deps.setOpenAICompatibleTranslationPrefs ?? DEFAULT_DEPS.setOpenAICompatibleTranslationPrefs;
+    setPrefs!(settings);
+    this.deps.toast(settings.sendContext
+      ? 'OpenAI-compatible BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다'
+      : 'OpenAI-compatible BYO API를 켰습니다. 번역 시 용어만 전송합니다');
   }
 
   private async runDisableTranslation() {
@@ -384,7 +419,9 @@ function confirmLargeAccept(itemCount: number, wordCount: number): boolean {
 }
 
 function confirmExternalTranslation(provider: Exclude<TranslationProvider, 'off'>): boolean {
-  const message = `${provider} 자동 번역은 빈 영어 단어/구를 외부 번역 서비스로 전송합니다. 계속할까요?`;
+  const message = provider === 'openai-compatible' && getOpenAICompatibleTranslationSettings().sendContext
+    ? 'OpenAI-compatible BYO API 자동 번역은 빈 영어 단어/구와 저장된 밑줄 문맥을 사용자가 설정한 외부 API로 전송합니다. 계속할까요?'
+    : `${provider} 자동 번역은 빈 영어 단어/구를 외부 번역 서비스로 전송합니다. 계속할까요?`;
   const win = Zotero.getMainWindow?.();
   if (typeof win?.confirm === 'function') return win.confirm(message);
   if (typeof globalThis.confirm === 'function') return globalThis.confirm(message);
@@ -397,6 +434,32 @@ function confirmEnableTranslation(): boolean {
   if (typeof win?.confirm === 'function') return win.confirm(message);
   if (typeof globalThis.confirm === 'function') return globalThis.confirm(message);
   return true;
+}
+
+function configureOpenAICompatibleTranslation(): OpenAICompatibleTranslationSettings | null {
+  const win = Zotero.getMainWindow?.();
+  const confirmFn = typeof win?.confirm === 'function' ? win.confirm.bind(win) : globalThis.confirm?.bind(globalThis);
+  const promptFn = typeof win?.prompt === 'function' ? win.prompt.bind(win) : globalThis.prompt?.bind(globalThis);
+  if (confirmFn && !confirmFn('OpenAI-compatible BYO API를 설정하면 API key가 Zotero preference에 저장되고, 번역 실행 시 용어가 외부 API로 전송됩니다. 문맥 전송은 다음 단계에서 선택합니다. 계속할까요?')) return null;
+  if (!promptFn) return null;
+
+  const current = getOpenAICompatibleTranslationSettings();
+  const endpoint = promptFn('Chat Completions 호환 endpoint URL', current.endpoint);
+  if (!endpoint?.trim()) return null;
+  const model = promptFn('사용할 model 이름', current.model);
+  if (!model?.trim()) return null;
+  const apiKey = promptFn('API key', current.apiKey);
+  if (!apiKey?.trim()) return null;
+  const sendContext = confirmFn
+    ? confirmFn('번역 품질을 위해 저장된 밑줄 문맥도 외부 API로 전송할까요? 취소하면 용어만 전송합니다.')
+    : false;
+
+  return {
+    endpoint,
+    apiKey,
+    model,
+    sendContext
+  };
 }
 
 function confirmLargeTranslation(itemCount: number, wordCount: number): boolean {

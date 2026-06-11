@@ -49,9 +49,11 @@ test('registers menu commands for user-facing translation provider control', () 
 
   const l10nIDs = registered.menus[0].menus.map((menu: any) => menu.l10nID);
   assert.ok(l10nIDs.includes('vocab-flow-translation-enable-google-free'));
+  assert.ok(l10nIDs.includes('vocab-flow-translation-configure-openai-compatible'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-disable'));
   const labels = registered.menus[0].menus.map((menu: any) => menu.label);
   assert.ok(labels.includes('부정확할 수 있는 무료 번역 보조 기능 켜기...'));
+  assert.ok(labels.includes('OpenAI-compatible BYO API 설정...'));
   assert.ok(labels.includes('번역 보조 기능 끄기'));
 });
 
@@ -94,6 +96,48 @@ test('does not enable translation when the provider confirmation is canceled', a
 
   assert.deepEqual(providers, []);
   assert.equal(toasts[0], '부정확할 수 있는 무료 번역 보조 기능 설정을 취소했습니다');
+});
+
+test('configures OpenAI-compatible BYO API translation through the menu', async () => {
+  const toasts: string[] = [];
+  const settings = {
+    endpoint: 'https://llm.example.test/v1/chat/completions',
+    apiKey: 'sk-test',
+    model: 'research-translator',
+    sendContext: true
+  };
+  const saved: unknown[] = [];
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    configureOpenAICompatibleTranslation: () => settings,
+    setOpenAICompatibleTranslationPrefs: (value) => {
+      saved.push(value);
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runConfigureOpenAICompatibleTranslationForTesting();
+
+  assert.deepEqual(saved, [settings]);
+  assert.equal(toasts[0], 'OpenAI-compatible BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다');
+});
+
+test('does not configure OpenAI-compatible BYO API when setup is canceled', async () => {
+  const toasts: string[] = [];
+  const saved: unknown[] = [];
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    configureOpenAICompatibleTranslation: () => null,
+    setOpenAICompatibleTranslationPrefs: (value) => {
+      saved.push(value);
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runConfigureOpenAICompatibleTranslationForTesting();
+
+  assert.deepEqual(saved, []);
+  assert.equal(toasts[0], 'OpenAI-compatible BYO API 설정을 취소했습니다');
 });
 
 test('disables translation through the menu', async () => {
@@ -391,7 +435,7 @@ test('reports translation as disabled when no translation provider is configured
   await manager.runTranslateForTesting();
 
   assert.equal(translated, false);
-  assert.match(toasts[0], /부정확할 수 있는 무료 번역 보조 기능 켜기/);
+  assert.match(toasts[0], /BYO API를 설정/);
 });
 
 test('summarizes translated final vocab notes', async () => {

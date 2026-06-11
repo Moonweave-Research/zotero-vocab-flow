@@ -25,7 +25,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 - Candidate notes with source context and `Review before translation` guidance.
 - Exclusion persistence across candidate regeneration.
 - Final vocab notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
-- Optional inaccurate free translation aid that fills only blank Korean meanings after opt-in.
+- Optional translation aids that fill only blank Korean meanings after opt-in: inaccurate free `google-free`, or OpenAI-compatible BYO API.
 
 ## Install
 
@@ -51,7 +51,9 @@ Translation is not the core product promise. It is an optional aid.
 - It only fills blank `Korean meaning` cells.
 - It preserves manually entered meanings.
 - The `google-free` provider is an inaccurate free aid. It sends terms without source context, may be blocked or rate-limited, and must be reviewed manually.
-- Terms can be sent to an external Google Translate endpoint when the aid is enabled.
+- The OpenAI-compatible BYO API provider sends terms to the endpoint you configure. You can choose whether stored underline context is sent with each term.
+- BYO API keys are stored in Zotero preferences on this machine.
+- Terms and optional context can be sent to external services when a translation aid is enabled.
 
 ## Release Status
 

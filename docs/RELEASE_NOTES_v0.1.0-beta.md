@@ -22,7 +22,7 @@ The core workflow is:
 - Candidate review notes with source context and `Review before translation` guidance.
 - Exclusion persistence through `제외`, `x`, and legacy exclusion tokens.
 - Final vocabulary notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
-- Optional inaccurate free translation aid that fills only blank Korean meanings after opt-in.
+- Optional translation aids that fill only blank Korean meanings after opt-in: inaccurate free `google-free`, or OpenAI-compatible BYO API with a context-send toggle.
 - Data-safety ownership markers so generated notes are handled separately from user notes.
 - A real 48px plugin icon, with SVG source kept in `addon/icon.svg`.
 
@@ -32,12 +32,12 @@ The core workflow is:
 - It does not treat every underline as final vocabulary by default.
 - It does not edit PDF annotations or user notes outside generated Vocab Flow blocks.
 - It does not guarantee dictionary-grade or context-perfect Korean translation.
-- It does not guarantee research-term quality, availability, rate limits, or long-term stability of the `google-free` translation endpoint.
-- It does not yet include a full settings pane or multiple translation providers.
+- It does not guarantee research-term quality, availability, rate limits, or long-term stability of any external translation provider.
+- It does not yet include a full settings pane; BYO API setup is still menu/prompt based.
 
 ## Verification Evidence
 
-- Unit tests: `npm run test:unit` -> 85/85 passing.
+- Unit tests: `npm run test:unit` -> 96/96 passing.
 - TypeScript: `npm run typecheck` -> passing.
 - Build: `npm run build` -> passing.
 - Installed Zotero runtime callback verification covered candidate generation, candidate acceptance, final note creation, cleanup, and DB read-only cleanup checks.
@@ -49,4 +49,5 @@ The core workflow is:
 - Candidate quality is heuristic and may miss domain terms or keep weak terms.
 - Positive annotation-level runtime coverage is strongest for green/all-underlines workflows; other color menus are registered and labeled but need broader real-annotation fixtures before a stable release.
 - Translation is intentionally framed as a weak aid. Users should review meanings manually.
+- BYO API keys are stored in Zotero preferences, and context sending can transmit stored underline text to the configured external API.
 - The manifest currently keeps an inert `update_url` because Zotero 9 install behavior was validated with that shape during local testing.
