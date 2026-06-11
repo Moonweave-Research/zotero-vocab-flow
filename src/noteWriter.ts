@@ -11,6 +11,12 @@ export type FillMeaningsResult =
   | { status: 'untranslated'; missingCount: number }
   | { status: 'empty' };
 
+export interface MeaningFillTerm {
+  word: string;
+  sourceText?: string;
+  sourceIndex?: number;
+}
+
 export interface VocabTerm {
   label: string;
   sourceText?: string;
@@ -34,15 +40,15 @@ export async function writeVocabNote(parent: any, words: VocabTermInput[]): Prom
   return note;
 }
 
-export async function fillMissingMeanings(parent: any, translate: (words: string[]) => Promise<Map<string, string>>): Promise<FillMeaningsResult> {
+export async function fillMissingMeanings(parent: any, translate: (terms: MeaningFillTerm[]) => Promise<Map<string, string>>): Promise<FillMeaningsResult> {
   const note = findExistingNote(parent);
   if (!note) return { status: 'empty' };
 
   const existingHtml = getNoteHtml(note);
-  const missingWords = extractMissingMeaningWords(existingHtml);
-  if (!missingWords.length) return { status: 'empty' };
+  const missingTerms = extractMissingMeaningTerms(existingHtml);
+  if (!missingTerms.length) return { status: 'empty' };
 
-  const translations = await translate(missingWords);
+  const translations = await translate(missingTerms);
   let translatedCount = 0;
   const updatedHtml = existingHtml.replace(
     /(<tr[^>]*data-vocab-flow-word="([^"]*)"[^>]*>\s*<td[^>]*>[\s\S]*?<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>\s*<\/tr>)/g,
@@ -56,7 +62,7 @@ export async function fillMissingMeanings(parent: any, translate: (words: string
     }
   );
 
-  if (!translatedCount) return { status: 'untranslated', missingCount: missingWords.length };
+  if (!translatedCount) return { status: 'untranslated', missingCount: missingTerms.length };
   note.setNote(updatedHtml);
   await note.saveTx();
   return { status: 'translated', translatedCount };
@@ -65,7 +71,7 @@ export async function fillMissingMeanings(parent: any, translate: (words: string
 export function countMissingMeanings(parent: any): number {
   const note = findExistingNote(parent);
   if (!note) return 0;
-  return extractMissingMeaningWords(getNoteHtml(note)).length;
+  return extractMissingMeaningTerms(getNoteHtml(note)).length;
 }
 
 function findExistingNote(parent: any): any | null {
@@ -158,14 +164,21 @@ function extractExistingTerms(html: string): Map<string, ExistingTermState> {
   return terms;
 }
 
-function extractMissingMeaningWords(html: string): string[] {
-  const words: string[] = [];
+function extractMissingMeaningTerms(html: string): MeaningFillTerm[] {
+  const terms: MeaningFillTerm[] = [];
   const rowPattern = /<tr[^>]*data-vocab-flow-word="([^"]*)"[^>]*>\s*<td[^>]*>[\s\S]*?<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/g;
   for (const match of html.matchAll(rowPattern)) {
     if (normalizeCellText(match[2])) continue;
-    words.push(decodeHtml(match[1]));
+    const rowHtml = match[0];
+    const sourceIndexText = extractAttribute(rowHtml, 'data-vocab-flow-source-index');
+    const sourceIndex = sourceIndexText === null ? undefined : Number.parseInt(sourceIndexText, 10);
+    terms.push({
+      word: decodeHtml(match[1]),
+      sourceText: extractAttribute(rowHtml, 'data-vocab-flow-source-text') ?? undefined,
+      sourceIndex: Number.isFinite(sourceIndex) ? sourceIndex : undefined
+    });
   }
-  return words;
+  return terms;
 }
 
 function normalizeCellText(html: string): string {

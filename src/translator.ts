@@ -1,8 +1,16 @@
 export type TranslationProvider = 'off' | 'google-free';
 
+export interface TranslationInput {
+  word: string;
+  sourceText?: string;
+  sourceIndex?: number;
+}
+
+export type TranslationInputLike = string | TranslationInput;
+
 export interface Translator {
   provider: TranslationProvider;
-  translate(words: string[]): Promise<Map<string, string>>;
+  translate(words: TranslationInputLike[]): Promise<Map<string, string>>;
 }
 
 const PROVIDER_PREF = 'extensions.vocabflow.translation.provider';
@@ -29,18 +37,22 @@ class OffTranslator implements Translator {
 class GoogleFreeTranslator implements Translator {
   provider: TranslationProvider = 'google-free';
 
-  async translate(words: string[]): Promise<Map<string, string>> {
+  async translate(words: TranslationInputLike[]): Promise<Map<string, string>> {
     const translations = new Map<string, string>();
-    for (const word of words) {
+    for (const input of normalizeTranslationInputs(words)) {
       try {
-        const translated = await translateWithGoogleFree(word);
-        if (translated) translations.set(word, translated);
+        const translated = await translateWithGoogleFree(input.word);
+        if (translated) translations.set(input.word, translated);
       } catch (_e) {
         // Keep partial results; one blocked/rate-limited term should not discard earlier meanings.
       }
     }
     return translations;
   }
+}
+
+function normalizeTranslationInputs(inputs: TranslationInputLike[]): TranslationInput[] {
+  return inputs.map((input) => typeof input === 'string' ? { word: input } : input);
 }
 
 async function translateWithGoogleFree(word: string): Promise<string> {

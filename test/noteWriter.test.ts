@@ -224,8 +224,8 @@ test('fills only missing Korean meanings in the generated vocab note', async () 
     Items: { get: (id: number) => (id === 99 ? existing : null) }
   };
 
-  const result = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (words) => {
-    assert.deepEqual(words, ['actuator']);
+  const result = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms.map((term) => term.word), ['actuator']);
     return new Map([['actuator', '액추에이터']]);
   });
 
@@ -270,8 +270,8 @@ test('reports untranslated when blank meanings exist but provider returns no res
     Items: { get: (id: number) => (id === 99 ? existing : null) }
   };
 
-  const result = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (words) => {
-    assert.deepEqual(words, ['actuator']);
+  const result = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms.map((term) => term.word), ['actuator']);
     return new Map();
   });
 
@@ -295,8 +295,8 @@ test('preserves and fills meanings when Zotero adds attributes to table cells', 
     Item: function () { throw new Error('should not create a new note'); }
   };
 
-  const filled = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (words) => {
-    assert.deepEqual(words, ['actuator']);
+  const filled = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms.map((term) => term.word), ['actuator']);
     return new Map([['actuator', '액추에이터']]);
   });
   assert.deepEqual(filled, { status: 'translated', translatedCount: 1 });
@@ -306,4 +306,30 @@ test('preserves and fills meanings when Zotero adds attributes to table cells', 
   const regenerated = await writeVocabNote({ id: 5, getNotes: () => [99] }, ['polymer', 'actuator']);
   assert.match(regenerated.note, /data-vocab-flow-word="polymer"><td>polymer<\/td><td>고분자<\/td>/);
   assert.match(regenerated.note, /data-vocab-flow-word="actuator"><td>actuator<\/td><td>액추에이터<\/td>/);
+});
+
+test('passes source context metadata to the meaning translator callback', async () => {
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<section data-vocab-flow="words">',
+    '<h2>Vocab (1)</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-word="valence" data-vocab-flow-source-index="3" data-vocab-flow-source-text="The valence state changed."><td>valence</td><td></td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) }
+  };
+
+  await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms, [
+      {
+        word: 'valence',
+        sourceText: 'The valence state changed.',
+        sourceIndex: 3
+      }
+    ]);
+    return new Map([['valence', '원자가']]);
+  });
 });
