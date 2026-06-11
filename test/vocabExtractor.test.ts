@@ -4,7 +4,7 @@ import { extractForItem } from '../src/vocabExtractor';
 import { Candidate } from '../src/candidateNoteWriter';
 
 function deps(candidates: Candidate[]) {
-  const calls = { wrote: null as Candidate[] | null, readOptions: null as any, writeOptions: null as any, toasts: [] as string[] };
+  const calls = { wrote: null as Candidate[] | null, discarded: false, readOptions: null as any, writeOptions: null as any, toasts: [] as string[] };
   return {
     calls,
     readUnderlineTexts: (_item: any, options?: any) => {
@@ -15,6 +15,9 @@ function deps(candidates: Candidate[]) {
     writeCandidateNote: async (_parent: any, generated: Candidate[], options?: any) => {
       calls.wrote = generated;
       calls.writeOptions = options ?? null;
+    },
+    discardCandidateNote: async () => {
+      calls.discarded = true;
     },
     toast: (msg: string) => calls.toasts.push(msg)
   };
@@ -62,4 +65,10 @@ test('does not write note and toasts when zero candidates after filter', async (
   await extractForItem({ id: 1 }, d);
   assert.equal(d.calls.wrote, null);
   assert.equal(d.calls.toasts.length, 1);
+});
+
+test('discards the active candidate note when rerun finds zero candidates', async () => {
+  const d = deps([]);
+  await extractForItem({ id: 1 }, d);
+  assert.equal(d.calls.discarded, true);
 });

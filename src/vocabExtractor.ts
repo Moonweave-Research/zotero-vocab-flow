@@ -1,12 +1,13 @@
 import { ReadUnderlineOptions, readUnderlineTexts as defaultReader } from './annotationReader';
 import { generateVocabCandidates as defaultCandidateGenerator } from './candidateExtractor';
-import { Candidate, writeCandidateNote as defaultCandidateWriter } from './candidateNoteWriter';
+import { Candidate, discardCandidateNote as defaultCandidateDiscarder, writeCandidateNote as defaultCandidateWriter } from './candidateNoteWriter';
 import { toast as defaultToast } from './notify';
 
 interface Deps {
   readUnderlineTexts: (item: any, options?: ReadUnderlineOptions) => string[];
   generateCandidates: (texts: string[]) => Candidate[];
   writeCandidateNote: (parent: any, candidates: Candidate[], options?: ReadUnderlineOptions) => Promise<any>;
+  discardCandidateNote: (parent: any) => Promise<void>;
   toast: (message: string) => void;
 }
 
@@ -25,6 +26,7 @@ const DEFAULT_DEPS: Deps = {
   readUnderlineTexts: defaultReader,
   generateCandidates: defaultCandidateGenerator,
   writeCandidateNote: defaultCandidateWriter,
+  discardCandidateNote: defaultCandidateDiscarder,
   toast: defaultToast
 };
 
@@ -34,6 +36,7 @@ export async function extractForItem(item: any, deps: Deps = DEFAULT_DEPS, optio
   const candidates = deps.generateCandidates(texts);
 
   if (candidates.length === 0) {
+    await deps.discardCandidateNote(item);
     if (options.notify !== false) {
       deps.toast(summarizeEmpty(readOptions));
     }
