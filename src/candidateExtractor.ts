@@ -69,7 +69,7 @@ export function generateVocabCandidates(rawTexts: string[]): Candidate[] {
   rawTexts.forEach((raw, index) => {
     if (!raw?.trim()) return;
     const sourceIndex = index + 1;
-    const sourceText = normalizeWhitespace(raw);
+    const sourceText = normalizeWhitespace(dehyphenateLineWraps(raw));
 
     for (const phrase of extractPhrases(sourceText)) {
       pushCandidate(candidates, seen, {
@@ -131,14 +131,17 @@ function extractPhrases(sourceText: string): string[] {
 }
 
 function extractWords(sourceText: string): string[] {
-  const dehyphenated = sourceText.replace(/-\s*\n\s*/g, '');
   const words: string[] = [];
-  for (const rawToken of dehyphenated.split(/\s+/)) {
+  for (const rawToken of sourceText.split(/\s+/)) {
     const token = trimPunctuation(rawToken);
     if (!isUsefulWord(token)) continue;
     words.push(token);
   }
   return words;
+}
+
+function dehyphenateLineWraps(text: string): string {
+  return text.replace(/-\s*\n\s*/g, '');
 }
 
 function isUsefulWord(token: string): boolean {

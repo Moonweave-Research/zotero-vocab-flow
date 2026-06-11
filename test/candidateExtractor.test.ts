@@ -56,3 +56,12 @@ test('rejects formula fragments and weak general words from runtime underline te
     'standard deviation'
   ]);
 });
+
+test('dehyphenates line-wrapped words before extracting vocab candidates', () => {
+  const candidates = generateVocabCandidates(['poly-\nmer actuator']);
+
+  const labels = candidates.map((candidate) => candidate.label);
+  assert.ok(labels.includes('polymer'));
+  assert.ok(!labels.includes('poly'));
+  assert.ok(labels.includes('actuator'));
+});
