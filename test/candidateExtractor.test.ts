@@ -74,3 +74,56 @@ test('rejects mistranslation-prone generic words and OCR-confusable non-terms', 
     'valence'
   ]);
 });
+
+test('filters generic academic prose from all-underlines runtime extraction while preserving technical terms', () => {
+  const candidates = generateVocabCandidates([
+    'LCE matrix (materials and methods and fig. S3)',
+    'These knots, with minimal crossings',
+    'CNTs and CNCs to enhance LCE stiffness and strength',
+    'LCEs with 1 wt % CNTs and 1 wt % CNCs are used as the shell to balance stiffness and strength for actuation (fig. S3).',
+    'Kevlar monofilaments',
+    'The LCE-Kevlar fibers exhibit an effective Young’s modulus (Yeff) up to 4.3 GPa',
+    'The loadings and Ntwi balance the trade-off between stiffness, strength, lightweight features, and actuation strain.',
+    'Ntwi enables actuation and enhances stiffn',
+    'Ashby plot comparing the Young’s modulus-to-density and strength-to-density ratios',
+    'the standard deviation (N = 3).'
+  ]);
+
+  const labels = candidates.map((candidate) => candidate.label);
+  assert.deepEqual(labels, [
+    'LCE matrix',
+    'CNTs',
+    'CNCs',
+    'LCEs',
+    'Kevlar',
+    'LCE-Kevlar',
+    'GPa',
+    'Young’s modulus',
+    'knots',
+    'crossings',
+    'stiffness',
+    'strength',
+    'shell',
+    'actuation',
+    'monofilaments',
+    'fibers',
+    'loadings',
+    'trade-off',
+    'lightweight',
+    'Ashby plot',
+    'modulus-to-density',
+    'strength-to-density',
+    'standard deviation'
+  ]);
+  assert.ok(!labels.includes('minimal'));
+  assert.ok(!labels.includes('materials'));
+  assert.ok(!labels.includes('methods'));
+  assert.ok(!labels.includes('features'));
+  assert.ok(!labels.includes('enables'));
+  assert.ok(!labels.includes('enhances'));
+  assert.ok(!labels.includes('balance'));
+  assert.ok(!labels.includes('exhibit'));
+  assert.ok(!labels.includes('effective'));
+  assert.ok(!labels.includes('comparing'));
+  assert.ok(!labels.includes('ratios'));
+});

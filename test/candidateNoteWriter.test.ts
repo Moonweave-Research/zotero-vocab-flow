@@ -32,6 +32,7 @@ test('creates a tagged compact candidate review note with source context', async
 
   assert.equal(note.parentID, 7);
   assert.ok(note.hasTag(CANDIDATE_TAG));
+  assert.match(note.note, /<h2>단어장 후보 \(2\) - Vocab Flow Candidates<\/h2>/);
   assert.match(note.note, /단어장 후보 \(2\)/);
   assert.match(note.note, /data-vocab-flow-candidates="review"/);
   assert.match(note.note, /Review before translation/);
@@ -340,4 +341,80 @@ test('discards a generated candidate note with the ownership marker even if the 
   await discardCandidateNote({ id: 7, getNotes: () => [99] });
 
   assert.deepEqual(trashed, [99]);
+});
+
+test('reads Zotero-sanitized candidate notes without data attributes', () => {
+  const existing = fakeNote([CANDIDATE_TAG]);
+  existing.note = [
+    '<div data-schema-version="9">',
+    '<h2>단어장 후보 (2) - Vocab Flow Candidates</h2>',
+    '<table><tbody>',
+    '<tr><th><p>용어 후보 (Term candidate)</p></th><th><p>저장 여부 (Keep?)</p></th><th><p>밑줄 문맥 (Context)</p></th></tr>',
+    '<tr><td><p>LCE matrix</p></td><td><p>저장</p></td><td><p>#3: LCE matrix context</p></td></tr>',
+    '<tr><td><p>their</p></td><td><p>제외</p></td><td><p>#4: their shell</p></td></tr>',
+    '</tbody></table>',
+    '</div>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) }
+  };
+
+  assert.deepEqual(readAcceptedCandidates({ id: 7, getNotes: () => [99] }), [
+    {
+      label: 'LCE matrix',
+      type: 'phrase',
+      sourceText: 'LCE matrix context',
+      sourceIndex: 3
+    }
+  ]);
+});
+
+test('does not treat a note that only mentions the candidate heading as generated', async () => {
+  const userNote = fakeNote();
+  (userNote as any).id = 99;
+  userNote.note = '<h2>Vocab Flow Candidates</h2><p>사용자가 보존한 설명 노트</p>';
+  const created = fakeNote();
+  const trashed: number[] = [];
+  (globalThis as any).Zotero = {
+    Items: {
+      get: (id: number) => (id === 99 ? userNote : null),
+      trashTx: async (id: number) => { trashed.push(id); }
+    },
+    Item: function () { return created; }
+  };
+
+  assert.deepEqual(readAcceptedCandidateLabels({ id: 7, getNotes: () => [99] }), []);
+  assert.equal(await discardCandidateNote({ id: 7, getNotes: () => [99] }), false);
+  assert.deepEqual(trashed, []);
+
+  const note = await writeCandidateNote({ id: 7, getNotes: () => [99] }, [
+    { label: 'LCE matrix', type: 'phrase', sourceText: 'LCE matrix context', sourceIndex: 3 }
+  ]);
+  assert.equal(note, created);
+  assert.equal(userNote.note, '<h2>Vocab Flow Candidates</h2><p>사용자가 보존한 설명 노트</p>');
+});
+
+test('preserves Zotero-sanitized excluded rows when regenerated rows still have data attributes', async () => {
+  const existing = fakeNote([CANDIDATE_TAG]);
+  existing.note = [
+    '<section data-vocab-flow-candidates="review">',
+    '<h2>단어장 후보 (2) - Vocab Flow Candidates</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-candidate="LCE matrix" data-vocab-flow-state="candidate" data-vocab-flow-type="phrase" data-vocab-flow-source-index="3" data-vocab-flow-source-text="LCE matrix context">',
+    '<td data-vocab-flow-role="candidate">LCE matrix</td><td data-vocab-flow-role="decision">저장</td><td data-vocab-flow-role="source">#3: LCE matrix context</td></tr>',
+    '<tr><td><p>their</p></td><td><p>제외</p></td><td><p>#4: their shell</p></td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) }
+  };
+
+  await writeCandidateNote({ id: 7, getNotes: () => [99] }, [
+    { label: 'LCE matrix', type: 'phrase', sourceText: 'LCE matrix context', sourceIndex: 3 },
+    { label: 'their', type: 'word', sourceText: 'their shell', sourceIndex: 4 }
+  ]);
+
+  assert.match(existing.note, /<td><p>their<\/p><\/td><td><p>제외<\/p><\/td>/);
+  assert.deepEqual(readAcceptedCandidateLabels({ id: 7, getNotes: () => [99] }), ['LCE matrix']);
 });

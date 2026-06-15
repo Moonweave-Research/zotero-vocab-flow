@@ -4,7 +4,9 @@ import { DEFAULT_CANDIDATE_COLOR, DEFAULT_CANDIDATE_TAG, describeCandidateColor 
 export const CANDIDATE_TAG = '_vocab-candidates';
 
 const CANDIDATE_MARKER = 'data-vocab-flow-candidates="review"';
-const CANDIDATE_BLOCK_PATTERN = /<section[^>]*data-vocab-flow-candidates="review"[^>]*>[\s\S]*?<\/section>/;
+const CANDIDATE_HEADING_MARKER = 'Vocab Flow Candidates';
+const CANDIDATE_SECTION_PATTERN = /<section[^>]*data-vocab-flow-candidates="review"[^>]*>[\s\S]*?<\/section>/;
+const CANDIDATE_SANITIZED_BLOCK_PATTERN = /<h2[^>]*>[\s\S]*?Vocab Flow Candidates[\s\S]*?<\/h2>\s*(?:<p[\s\S]*?<\/p>\s*)?<table[\s\S]*?<\/table>/;
 const SOURCE_CONTEXT_LIMIT = 160;
 
 export interface Candidate {
@@ -58,21 +60,22 @@ export function countAcceptedCandidateLabels(parent: any): number {
   return readAcceptedCandidateLabels(parent).length;
 }
 
-export async function discardCandidateNote(parent: any): Promise<void> {
+export async function discardCandidateNote(parent: any): Promise<boolean> {
   const note = findExistingCandidateNote(parent);
-  if (!note) return;
+  if (!note) return false;
   if (typeof Zotero.Items?.trashTx === 'function') {
     await Zotero.Items.trashTx(note.id);
-    return;
+    return true;
   }
   await note.trashTx?.();
+  return true;
 }
 
 function findExistingCandidateNote(parent: any): any | null {
   const noteIDs: number[] = parent.getNotes?.() ?? [];
   for (const id of noteIDs) {
     const note: any = Zotero.Items.get(id);
-    if (!getNoteHtml(note).includes(CANDIDATE_MARKER)) continue;
+    if (!hasCandidateOwnershipMarker(note)) continue;
     if (!note.hasTag?.(CANDIDATE_TAG)) note.addTag?.(CANDIDATE_TAG);
     return note;
   }
@@ -108,7 +111,7 @@ function buildCandidateHtml(candidates: Candidate[], existingStates: Map<string,
   const scopeText = describeScope(options);
   return [
     `<section data-vocab-flow-candidates="review" data-vocab-flow-scope="${options.scope}">`,
-    `<h2>단어장 후보 (${activeCount})</h2>`,
+    `<h2>단어장 후보 (${activeCount}) - Vocab Flow Candidates</h2>`,
     `<p><strong>Review before translation.</strong> ${scopeText} 필요한 용어만 최종 단어장으로 보내기 위한 검토 단계입니다. 단어장에 넣지 않을 행은 저장 여부(Keep?) 칸을 제외 또는 x로 바꾼 뒤 확정 저장하세요. 한국어 뜻은 최종 단어장에서 직접 입력하거나 선택적으로 자동 채우기를 실행합니다. 번역 보조 기능은 후보 검토를 대체하지 않습니다.</p>`,
     '<table>',
     '<thead><tr><th>용어 후보 (Term candidate)</th><th>저장 여부 (Keep?)</th><th>밑줄 문맥 (Context)</th></tr></thead>',
@@ -173,6 +176,11 @@ function extractCandidateRows(html: string): Array<AcceptedCandidate & { state: 
       rowHtml: match[0]
     });
   }
+  const seen = new Set(rows.map((row) => row.label.toLowerCase()));
+  for (const row of extractPlainCandidateRows(html)) {
+    if (seen.has(row.label.toLowerCase())) continue;
+    rows.push(row);
+  }
   return rows;
 }
 
@@ -209,6 +217,50 @@ function extractSource(rowHtml: string): Pick<Candidate, 'sourceText' | 'sourceI
   };
 }
 
+function extractPlainCandidateRows(html: string): Array<AcceptedCandidate & { state: 'candidate' | 'excluded'; rowHtml: string }> {
+  if (!html.includes(CANDIDATE_HEADING_MARKER)) return [];
+  const rows: Array<AcceptedCandidate & { state: 'candidate' | 'excluded'; rowHtml: string }> = [];
+  for (const rowHtml of html.match(/<tr\b[^>]*>[\s\S]*?<\/tr>/g) ?? []) {
+    const cells = extractCellMatches(rowHtml);
+    if (cells.length < 3) continue;
+    const label = normalizeCellText(cells[0].inner);
+    const decision = normalizeCellText(cells[1].inner).toLowerCase();
+    const source = parseSourceCell(normalizeCellText(cells[2].inner));
+    if (!label || isCandidateHeader(label, decision, source.sourceText)) continue;
+    rows.push({
+      label,
+      type: inferCandidateType(label),
+      sourceText: source.sourceText,
+      sourceIndex: source.sourceIndex,
+      state: isExcludedToken(decision) ? 'excluded' : 'candidate',
+      rowHtml
+    });
+  }
+  return rows;
+}
+
+function parseSourceCell(text: string): Pick<Candidate, 'sourceText' | 'sourceIndex'> {
+  const indexMatch = text.match(/^#(\d+):\s*(.*)$/);
+  if (!indexMatch) return { sourceText: text, sourceIndex: 0 };
+  return {
+    sourceText: indexMatch[2],
+    sourceIndex: Number.parseInt(indexMatch[1], 10)
+  };
+}
+
+function isCandidateHeader(label: string, decision: string, source: string): boolean {
+  const first = label.toLowerCase();
+  const second = decision.toLowerCase();
+  const third = source.toLowerCase();
+  return (first.includes('용어') || first.includes('term candidate'))
+    && (second.includes('저장') || second.includes('keep'))
+    && (third.includes('문맥') || third.includes('context'));
+}
+
+function inferCandidateType(label: string): Candidate['type'] {
+  return /\s/.test(label.trim()) ? 'phrase' : 'word';
+}
+
 function extractAttribute(html: string, name: string): string | null {
   const match = html.match(new RegExp(`${name}="([^"]*)"`));
   return match ? decodeHtml(match[1]) : null;
@@ -241,6 +293,12 @@ function normalizeCellText(html: string): string {
   return decodeHtml(html.replace(/<[^>]+>/g, '')).trim();
 }
 
+function extractCellMatches(rowHtml: string): Array<{ inner: string }> {
+  return [...rowHtml.matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/g)].map((match) => ({
+    inner: match[1]
+  }));
+}
+
 function normalizeExcludedRow(rowHtml: string): string {
   return rowHtml
     .replace(/data-vocab-flow-state="candidate"/, 'data-vocab-flow-state="excluded"')
@@ -256,14 +314,29 @@ function truncateSourceContext(text: string): string {
 
 function mergeCandidateBlock(existingHtml: string, generatedHtml: string): string {
   if (!existingHtml) return generatedHtml;
-  if (CANDIDATE_BLOCK_PATTERN.test(existingHtml)) {
-    return existingHtml.replace(CANDIDATE_BLOCK_PATTERN, generatedHtml);
+  if (CANDIDATE_SECTION_PATTERN.test(existingHtml)) {
+    return existingHtml.replace(CANDIDATE_SECTION_PATTERN, generatedHtml);
+  }
+  if (CANDIDATE_SANITIZED_BLOCK_PATTERN.test(existingHtml)) {
+    return existingHtml.replace(CANDIDATE_SANITIZED_BLOCK_PATTERN, generatedHtml);
   }
   return generatedHtml;
 }
 
 function getNoteHtml(note: any): string {
   return note?.getNote?.() ?? note?.note ?? '';
+}
+
+function hasCandidateOwnershipMarker(note: any): boolean {
+  const html = getNoteHtml(note);
+  return html.includes(CANDIDATE_MARKER) || hasSanitizedCandidateBlock(html);
+}
+
+function hasSanitizedCandidateBlock(html: string): boolean {
+  return CANDIDATE_SANITIZED_BLOCK_PATTERN.test(html)
+    && /용어 후보|Term candidate/.test(html)
+    && /저장 여부|Keep\?/.test(html)
+    && /밑줄 문맥|Context/.test(html);
 }
 
 function escapeHtml(text: string): string {

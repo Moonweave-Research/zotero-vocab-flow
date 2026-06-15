@@ -20,7 +20,9 @@ const LARGE_ACCEPT_THRESHOLD = 30;
 const LARGE_TRANSLATION_THRESHOLD = 30;
 const GENERATED_NOTE_MARKERS = [
   'data-vocab-flow="words"',
-  'data-vocab-flow-candidates="review"'
+  'data-vocab-flow-candidates="review"',
+  'Vocab Flow Wordbook',
+  'Vocab Flow Candidates'
 ];
 
 interface MenuDeps {
@@ -37,6 +39,7 @@ interface MenuDeps {
   confirmExternalTranslation?: (provider: Exclude<TranslationProvider, 'off'>) => boolean;
   confirmLargeTranslation?: (itemCount: number, wordCount: number) => boolean;
   translateMissingMeaningsForItem?: (item: any) => Promise<FillMeaningsResult>;
+  showGeneratedNote?: (noteID: number) => void;
   toast: (message: string) => void;
 }
 
@@ -57,6 +60,7 @@ const DEFAULT_DEPS: MenuDeps = {
     const translator = createTranslatorFromPrefs();
     return defaultMeaningFiller(item, (words) => translator.translate(words));
   },
+  showGeneratedNote: showGeneratedNote,
   toast: defaultToast
 };
 
@@ -189,18 +193,29 @@ export class VocabFlowMenuManager {
 
   private handleCommand(name: 'extract' | 'accept' | 'translate' | 'translation-enable' | 'translation-configure' | 'translation-disable', run: () => Promise<void>) {
     Logger.log(`menu command received: ${name}`);
-    return run().catch((e) => Logger.error(`menu command failed: ${name}`, e));
+    return run().catch((e) => {
+      Logger.error(`menu command failed: ${name}`, e);
+      this.deps.toast(`Vocab Flow 명령 실행 실패: ${errorMessage(e)}`);
+    });
   }
 
   private async runExtract(context: any, options: ReadUnderlineOptions) {
     const items = this.getRegularItems(context);
     Logger.log(`extract command selected ${items.length} item(s)`);
-    if (!items.length) return;
+    if (!items.length) {
+      this.deps.toast('선택된 Zotero 항목이 없습니다');
+      return;
+    }
 
     let pdfMissing = 0;
     let candidates = 0;
+    let annotationCount = 0;
+    let candidateCount = 0;
     let empty = 0;
+    let cleanedCandidateNotes = 0;
     let failed = 0;
+    const errors: string[] = [];
+    const showNote = this.deps.showGeneratedNote ?? DEFAULT_DEPS.showGeneratedNote;
     for (const item of items) {
       try {
         if (!(item.getAttachments?.() ?? []).some((id: number) => Zotero.Items.get(id)?.isPDFAttachment?.())) {
@@ -208,26 +223,47 @@ export class VocabFlowMenuManager {
           continue;
         }
         const result = await this.deps.extractForItem(item, options);
-        if (result.status === 'candidates') candidates++;
-        if (result.status === 'empty') empty++;
+        annotationCount += result.annotationCount ?? 0;
+        if (result.status === 'candidates') {
+          candidates++;
+          candidateCount += result.candidateCount;
+          if (typeof result.noteID === 'number') {
+            try {
+              showNote?.(result.noteID);
+            } catch (e) {
+              Logger.error(`failed to show generated candidate note ${result.noteID}`, e);
+            }
+          }
+        }
+        if (result.status === 'empty') {
+          empty++;
+          if (result.cleanedCandidateNote) cleanedCandidateNotes++;
+        }
       } catch (e) {
         Logger.error(`vocab extract failed for item ${item?.id}`, e);
         failed++;
+        errors.push(errorMessage(e));
       }
     }
-    this.deps.toast(summarizeResult({ total: items.length, candidates, empty, pdfMissing, failed, options }));
+    this.deps.toast(summarizeResult({ total: items.length, candidates, candidateCount, annotationCount, empty, cleanedCandidateNotes, pdfMissing, failed, options, errors }));
   }
 
   private async runAccept(context?: any) {
     const items = this.getRegularItems(context);
     Logger.log(`accept command selected ${items.length} item(s)`);
-    if (!items.length) return;
+    if (!items.length) {
+      this.deps.toast('선택된 Zotero 항목이 없습니다');
+      return;
+    }
 
     let accepted = 0;
+    let wordCountSaved = 0;
     let empty = 0;
     let failed = 0;
+    const errors: string[] = [];
     const accept = this.deps.acceptCandidatesForItem ?? DEFAULT_DEPS.acceptCandidatesForItem;
     const countAccepted = this.deps.countAcceptedCandidatesForItem ?? DEFAULT_DEPS.countAcceptedCandidatesForItem;
+    const showNote = this.deps.showGeneratedNote ?? DEFAULT_DEPS.showGeneratedNote;
     const wordCount = items.reduce((sum, item) => sum + countAccepted!(item), 0);
     if (wordCount >= LARGE_ACCEPT_THRESHOLD) {
       const confirm = this.deps.confirmLargeAccept ?? DEFAULT_DEPS.confirmLargeAccept;
@@ -240,20 +276,34 @@ export class VocabFlowMenuManager {
     for (const item of items) {
       try {
         const result = await accept!(item);
-        if (result.status === 'accepted') accepted++;
+        if (result.status === 'accepted') {
+          accepted++;
+          wordCountSaved += result.wordCount;
+          if (typeof result.noteID === 'number') {
+            try {
+              showNote?.(result.noteID);
+            } catch (e) {
+              Logger.error(`failed to show generated wordbook note ${result.noteID}`, e);
+            }
+          }
+        }
         if (result.status === 'empty') empty++;
       } catch (e) {
         Logger.error(`vocab accept failed for item ${item?.id}`, e);
         failed++;
+        errors.push(errorMessage(e));
       }
     }
-    this.deps.toast(summarizeAcceptResult({ total: items.length, accepted, empty, failed }));
+    this.deps.toast(summarizeAcceptResult({ total: items.length, accepted, wordCountSaved, empty, failed, errors }));
   }
 
   private async runTranslate(context?: any) {
     const items = this.getRegularItems(context);
     Logger.log(`translate command selected ${items.length} item(s)`);
-    if (!items.length) return;
+    if (!items.length) {
+      this.deps.toast('선택된 Zotero 항목이 없습니다');
+      return;
+    }
 
     const provider = (this.deps.getTranslationProvider ?? DEFAULT_DEPS.getTranslationProvider)!();
     if (provider === 'off') {
@@ -280,6 +330,7 @@ export class VocabFlowMenuManager {
     let empty = 0;
     let untranslated = 0;
     let failed = 0;
+    const errors: string[] = [];
     const fill = this.deps.translateMissingMeaningsForItem ?? DEFAULT_DEPS.translateMissingMeaningsForItem;
     for (const item of items) {
       try {
@@ -290,9 +341,10 @@ export class VocabFlowMenuManager {
       } catch (e) {
         Logger.error(`vocab translation failed for item ${item?.id}`, e);
         failed++;
+        errors.push(errorMessage(e));
       }
     }
-    this.deps.toast(summarizeTranslateResult({ translated, empty, untranslated, failed }));
+    this.deps.toast(summarizeTranslateResult({ translated, empty, untranslated, failed, errors }));
   }
 
   private async runEnableGoogleFreeTranslation() {
@@ -368,44 +420,75 @@ function isGeneratedVocabFlowNote(item: any): boolean {
   return GENERATED_NOTE_MARKERS.some((marker) => html.includes(marker));
 }
 
-function summarizeResult(result: { total: number; candidates: number; empty: number; pdfMissing: number; failed: number; options: ReadUnderlineOptions }): string {
+function summarizeResult(result: { total: number; candidates: number; candidateCount: number; annotationCount: number; empty: number; cleanedCandidateNotes: number; pdfMissing: number; failed: number; options: ReadUnderlineOptions; errors?: string[] }): string {
   if (result.pdfMissing === result.total) return '이 항목에 PDF가 없습니다';
   if (result.empty === result.total) {
-    if (result.options.scope === 'color') return `${describeCandidateColor(result.options.color)} 밑줄이 없습니다`;
-    if (result.options.scope === 'tag') return `${result.options.tagName ?? DEFAULT_CANDIDATE_TAG} 태그 밑줄이 없습니다`;
-    return '고급 전체 밑줄에서 검토할 단어 후보가 없습니다';
+    const cleanup = result.cleanedCandidateNotes ? ` 기존 후보 노트 ${result.cleanedCandidateNotes}개를 정리했습니다` : '';
+    if (result.options.scope === 'color') return `${describeCandidateColor(result.options.color)} 밑줄이 없습니다${cleanup}`;
+    if (result.options.scope === 'tag') return `${result.options.tagName ?? DEFAULT_CANDIDATE_TAG} 태그 밑줄이 없습니다${cleanup}`;
+    return `고급 전체 밑줄에서 검토할 단어 후보가 없습니다${cleanup}`;
   }
-  if (result.failed === result.total) return '단어 추출 중 오류가 발생했습니다';
+  if (result.failed === result.total) return withFirstError('단어 추출 중 오류가 발생했습니다', result.errors);
 
   const parts: string[] = [];
-  if (result.candidates) parts.push(`${result.candidates}개 후보 노트 저장`);
+  if (result.candidates) parts.push(`${result.candidates}개 후보 노트 저장(Vocab Flow Candidates, 밑줄 ${result.annotationCount}개, 후보 ${result.candidateCount}개)`);
   if (result.empty) parts.push(`${result.empty}개 후보 없음`);
+  if (result.cleanedCandidateNotes) parts.push(`${result.cleanedCandidateNotes}개 기존 후보 노트 정리`);
   if (result.pdfMissing) parts.push(`${result.pdfMissing}개 PDF 없음`);
-  if (result.failed) parts.push(`${result.failed}개 실패`);
+  if (result.failed) parts.push(withFirstError(`${result.failed}개 실패`, result.errors));
   return parts.length ? parts.join(', ') : '처리할 항목이 없습니다';
 }
 
-function summarizeAcceptResult(result: { total: number; accepted: number; empty: number; failed: number }): string {
+function summarizeAcceptResult(result: { total: number; accepted: number; wordCountSaved: number; empty: number; failed: number; errors?: string[] }): string {
   if (result.empty === result.total) return '확정할 단어 후보가 없습니다';
-  if (result.failed === result.total) return '단어장 저장 중 오류가 발생했습니다';
+  if (result.failed === result.total) return withFirstError('단어장 저장 중 오류가 발생했습니다', result.errors);
 
   const parts: string[] = [];
-  if (result.accepted) parts.push(`${result.accepted}개 단어장 저장`);
+  if (result.accepted) parts.push(`${result.accepted}개 단어장 저장(Vocab Flow Wordbook, 후보 ${result.wordCountSaved}개)`);
   if (result.empty) parts.push(`${result.empty}개 후보 없음`);
-  if (result.failed) parts.push(`${result.failed}개 실패`);
+  if (result.failed) parts.push(withFirstError(`${result.failed}개 실패`, result.errors));
   return parts.length ? parts.join(', ') : '처리할 항목이 없습니다';
 }
 
-function summarizeTranslateResult(result: { translated: number; empty: number; untranslated: number; failed: number }): string {
+function summarizeTranslateResult(result: { translated: number; empty: number; untranslated: number; failed: number; errors?: string[] }): string {
   if (!result.translated && result.empty && !result.untranslated && !result.failed) return '채울 빈 한국어 뜻이 없습니다';
-  if (!result.translated && result.failed && !result.empty && !result.untranslated) return '자동 번역 중 오류가 발생했습니다';
+  if (!result.translated && result.failed && !result.empty && !result.untranslated) return withFirstError('자동 번역 중 오류가 발생했습니다', result.errors);
 
   const parts: string[] = [];
   if (result.translated) parts.push(`${result.translated}개 뜻 채움`);
   if (result.empty) parts.push(`${result.empty}개 빈 뜻 없음`);
   if (result.untranslated) parts.push(`${result.untranslated}개 번역 결과 없음`);
-  if (result.failed) parts.push(`${result.failed}개 실패`);
+  if (result.failed) parts.push(withFirstError(`${result.failed}개 실패`, result.errors));
   return parts.length ? parts.join(', ') : '처리할 항목이 없습니다';
+}
+
+function showGeneratedNote(noteID: number): void {
+  const pane = Zotero.getActiveZoteroPane?.();
+  if (typeof pane?.selectItem === 'function') {
+    pane.selectItem(noteID);
+    return;
+  }
+  if (typeof pane?.itemsView?.selectItem === 'function') {
+    pane.itemsView.selectItem(noteID);
+    return;
+  }
+  if (typeof pane?.itemTree?.selectItem === 'function') {
+    pane.itemTree.selectItem(noteID);
+    return;
+  }
+  const win = Zotero.getMainWindow?.() as any;
+  if (typeof win?.ZoteroPane?.selectItem === 'function') {
+    win.ZoteroPane.selectItem(noteID);
+  }
+}
+
+function withFirstError(message: string, errors: string[] | undefined): string {
+  const first = errors?.find(Boolean);
+  return first ? `${message}: ${first}` : message;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }
 
 function confirmLargeAccept(itemCount: number, wordCount: number): boolean {

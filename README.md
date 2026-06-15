@@ -2,7 +2,7 @@
 
 Zotero Vocab Flow is a Zotero 9 plugin that turns intentional PDF underline annotations into reviewable vocabulary candidates, then saves selected terms into a clean vocabulary note.
 
-This is a `v0.1.0-beta` release for local/researcher workflow validation.
+This is a `v0.1.0-beta.1` prerelease for local/researcher workflow validation, following the original `v0.1.0-beta`.
 
 ## Why It Exists
 
@@ -15,7 +15,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 3. Review the generated `단어장 후보 (...)` note.
 4. Change unwanted rows from `저장` to `제외` or `x`.
 5. Run `selected candidates로 단어장 만들기`.
-6. Fill `한국어 뜻 (Korean meaning)` manually, or use the optional inaccurate free translation aid.
+6. Fill `한국어 뜻 (Korean meaning)` manually, or use an optional translation aid after review.
 
 ## Main Features
 
@@ -57,13 +57,14 @@ Translation is not the core product promise. It is an optional aid.
 
 ## Release Status
 
-Current release: `v0.1.0-beta`
+Current release: `v0.1.0-beta.1`
 
 Verified:
 
-- `npm run test:unit` -> 85/85 passing.
+- `npm run test:unit` -> 110/110 passing.
 - `npm run typecheck` -> passing.
-- Zotero runtime validation for menu loading, candidate generation, accept flow, cleanup, and DB read-only cleanup checks.
+- `npm run release:check` -> passing.
+- Zotero runtime validation for menu loading, green candidate generation, accept flow, OpenAI-compatible BYO callback against a localhost mock endpoint, cleanup, installed XPI hash match, and DB read-only cleanup checks.
 
 Known limits:
 

@@ -13,12 +13,12 @@ test('writes accepted candidates with source context to the final vocab note', a
 
   const result = await acceptCandidatesForItem({ id: 7 }, {
     readAcceptedCandidates: () => accepted,
-    writeVocabNote: async (_parent, words) => { written.push(words); return {}; },
+    writeVocabNote: async (_parent, words) => { written.push(words); return { id: 199 }; },
     discardCandidateNote: async () => { discarded = true; },
     toast: (message) => { toasts.push(message); }
   });
 
-  assert.deepEqual(result, { status: 'accepted', wordCount: 2 });
+  assert.deepEqual(result, { status: 'accepted', wordCount: 2, noteID: 199 });
   assert.deepEqual(written, [accepted]);
   assert.equal(discarded, true);
   assert.equal(toasts[0], '2개 후보를 단어장에 저장했습니다');

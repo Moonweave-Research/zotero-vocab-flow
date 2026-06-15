@@ -7,13 +7,13 @@ interface Deps {
   readUnderlineTexts: (item: any, options?: ReadUnderlineOptions) => string[];
   generateCandidates: (texts: string[]) => Candidate[];
   writeCandidateNote: (parent: any, candidates: Candidate[], options?: ReadUnderlineOptions) => Promise<any>;
-  discardCandidateNote: (parent: any) => Promise<void>;
+  discardCandidateNote: (parent: any) => Promise<boolean>;
   toast: (message: string) => void;
 }
 
 export type ExtractResult =
-  | { status: 'candidates'; candidateCount: number }
-  | { status: 'empty' };
+  | { status: 'candidates'; candidateCount: number; annotationCount?: number; noteID?: number }
+  | { status: 'empty'; annotationCount?: number; cleanedCandidateNote?: boolean };
 
 interface ExtractOptions {
   notify?: boolean;
@@ -36,16 +36,16 @@ export async function extractForItem(item: any, deps: Deps = DEFAULT_DEPS, optio
   const candidates = deps.generateCandidates(texts);
 
   if (candidates.length === 0) {
-    await deps.discardCandidateNote(item);
+    const cleanedCandidateNote = await deps.discardCandidateNote(item);
     if (options.notify !== false) {
       deps.toast(summarizeEmpty(readOptions));
     }
-    return { status: 'empty' };
+    return { status: 'empty', annotationCount: texts.length, cleanedCandidateNote };
   }
 
-  await deps.writeCandidateNote(item, candidates, readOptions);
+  const note = await deps.writeCandidateNote(item, candidates, readOptions);
   if (options.notify !== false) deps.toast(`${candidates.length}개 단어 후보를 검토 노트에 저장했습니다`);
-  return { status: 'candidates', candidateCount: candidates.length };
+  return { status: 'candidates', candidateCount: candidates.length, annotationCount: texts.length, noteID: note?.id };
 }
 
 function buildReadOptions(options: ExtractOptions): ReadUnderlineOptions {

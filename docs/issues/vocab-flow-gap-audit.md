@@ -182,6 +182,7 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
   - Cleanup trashed note `9962`; read-only immutable DB verification found `deletedItems.itemID=9962` and `active_temp_vocab_notes=0`.
   - Final rebuilt XPI was recopied to the default profile after documentation updates; final local/profile hash: `31114930e10d8aebc138aa726129be463953f52b696ec29ca2f332f949cc0050`.
 - Final rebuilt XPI after candidate-stage clarity, bilingual wording, translation-aid positioning, v0.1.0 release prep, plugin icon replacement, and deterministic packaging was recopied to the default profile; final local/profile hash: `5515f32cb536bac99d9be67724d8904185ad2b0c97ecc239fec8b44deaca9eb3`.
+- Runtime QA for the v0.1.0-beta.1 release candidate verified green candidate extraction on item `9761`, accept flow, OpenAI-compatible BYO callback through a localhost mock endpoint, final Korean meaning fill, cleanup of notes `10011` and `10012`, active generated-note DB counts at zero, and final local/profile XPI hash `ed59c077c289b985b8ebf1f46d33caec3cbeafcc0ea0b35c94f6756c8b5d0afe`.
 
 ## Acceptance Checklist
 

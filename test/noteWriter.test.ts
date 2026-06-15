@@ -27,6 +27,7 @@ test('creates a new tagged note when none exists', async () => {
 
   assert.equal(note.parentID, 5);
   assert.ok(note.hasTag(VOCAB_TAG));
+  assert.match(note.note, /<h2>단어장 \(2\) - Vocab Flow Wordbook<\/h2>/);
   assert.match(note.note, /polymer/);
   assert.match(note.note, /actuator/);
   assert.match(note.note, /<th>용어 \(Term\)<\/th><th>한국어 뜻 \(Korean meaning\)<\/th>/);
@@ -168,12 +169,13 @@ test('renders an editable Korean meaning column for each word', async () => {
   const note = await writeVocabNote({ id: 7, getNotes: () => [] }, ['polymer']);
 
   assert.match(note.note, /<table>/);
-  assert.match(note.note, /<h2>단어장 \(1\)<\/h2>/);
+  assert.match(note.note, /Vocab Flow Wordbook/);
+  assert.match(note.note, /<h2>단어장 \(1\) - Vocab Flow Wordbook<\/h2>/);
   assert.match(note.note, /<th>용어 \(Term\)<\/th>/);
   assert.match(note.note, /<th>한국어 뜻 \(Korean meaning\)<\/th>/);
   assert.match(note.note, /data-vocab-flow-word="polymer"/);
   assert.doesNotMatch(note.note, /<th>English<\/th>/);
-  assert.doesNotMatch(note.note, /<h2>Vocab/);
+  assert.doesNotMatch(note.note, /<h2>Vocab \(/);
 });
 
 test('preserves manually entered Korean meanings when regenerating the vocab table', async () => {
@@ -332,4 +334,83 @@ test('passes source context metadata to the meaning translator callback', async 
     ]);
     return new Map([['valence', '원자가']]);
   });
+});
+
+test('recognizes and updates Zotero-sanitized wordbook notes without data attributes', async () => {
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<div data-schema-version="9">',
+    '<h2>단어장 (2) - Vocab Flow Wordbook</h2>',
+    '<table><tbody>',
+    '<tr><th><p>용어 (Term)</p></th><th><p>한국어 뜻 (Korean meaning)</p></th></tr>',
+    '<tr><td><p>polymer</p></td><td><p>고분자</p></td></tr>',
+    '<tr><td><p>actuator</p></td><td><p></p></td></tr>',
+    '</tbody></table>',
+    '</div>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) },
+    Item: function () { throw new Error('should not create a duplicate note'); }
+  };
+
+  const filled = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms.map((term) => term.word), ['actuator']);
+    return new Map([['actuator', '액추에이터']]);
+  });
+  assert.deepEqual(filled, { status: 'translated', translatedCount: 1 });
+  assert.match(existing.note, /<td><p>actuator<\/p><\/td><td><p>액추에이터<\/p><\/td>/);
+
+  const regenerated = await writeVocabNote({ id: 5, getNotes: () => [99] }, ['polymer', 'actuator', 'elastomer']);
+  assert.equal(regenerated, existing);
+  assert.match(existing.note, /data-vocab-flow-word="polymer"><td>polymer<\/td><td>고분자<\/td>/);
+  assert.match(existing.note, /data-vocab-flow-word="actuator"><td>actuator<\/td><td>액추에이터<\/td>/);
+  assert.match(existing.note, /data-vocab-flow-word="elastomer"><td>elastomer<\/td><td><\/td>/);
+});
+
+test('does not overwrite a note that only mentions the wordbook heading', async () => {
+  const userNote = fakeNote();
+  userNote.note = '<h2>Vocab Flow Wordbook</h2><p>사용자가 보존한 설명 노트</p>';
+  const created = fakeNote();
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? userNote : null) },
+    Item: function () { return created; }
+  };
+
+  const filled = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async () => {
+    throw new Error('translator should not be called');
+  });
+  assert.deepEqual(filled, { status: 'empty' });
+
+  const note = await writeVocabNote({ id: 5, getNotes: () => [99] }, ['polymer']);
+  assert.equal(note, created);
+  assert.equal(userNote.note, '<h2>Vocab Flow Wordbook</h2><p>사용자가 보존한 설명 노트</p>');
+});
+
+test('fills blank meanings in mixed data-attribute and sanitized wordbook rows', async () => {
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<div data-schema-version="9">',
+    '<h2>단어장 (2) - Vocab Flow Wordbook</h2>',
+    '<table><tbody>',
+    '<tr><th><p>용어 (Term)</p></th><th><p>한국어 뜻 (Korean meaning)</p></th></tr>',
+    '<tr data-vocab-flow-word="polymer"><td>polymer</td><td></td></tr>',
+    '<tr><td><p>actuator</p></td><td><p></p></td></tr>',
+    '</tbody></table>',
+    '</div>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) }
+  };
+
+  const filled = await fillMissingMeanings({ id: 5, getNotes: () => [99] }, async (terms) => {
+    assert.deepEqual(terms.map((term) => term.word), ['polymer', 'actuator']);
+    return new Map([
+      ['polymer', '고분자'],
+      ['actuator', '액추에이터']
+    ]);
+  });
+
+  assert.deepEqual(filled, { status: 'translated', translatedCount: 2 });
+  assert.match(existing.note, /data-vocab-flow-word="polymer"><td>polymer<\/td><td>고분자<\/td>/);
+  assert.match(existing.note, /<td><p>actuator<\/p><\/td><td><p>액추에이터<\/p><\/td>/);
 });

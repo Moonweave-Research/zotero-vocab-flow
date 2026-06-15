@@ -5,12 +5,12 @@ import { toast as defaultToast } from './notify';
 interface Deps {
   readAcceptedCandidates: (item: any) => AcceptedCandidate[];
   writeVocabNote: (parent: any, words: VocabTermInput[]) => Promise<any>;
-  discardCandidateNote: (parent: any) => Promise<void>;
+  discardCandidateNote: (parent: any) => Promise<boolean | void>;
   toast: (message: string) => void;
 }
 
 export type AcceptResult =
-  | { status: 'accepted'; wordCount: number }
+  | { status: 'accepted'; wordCount: number; noteID?: number }
   | { status: 'empty' };
 
 const DEFAULT_DEPS: Deps = {
@@ -27,8 +27,8 @@ export async function acceptCandidatesForItem(item: any, deps: Deps = DEFAULT_DE
     return { status: 'empty' };
   }
 
-  await deps.writeVocabNote(item, candidates);
+  const note = await deps.writeVocabNote(item, candidates);
   await deps.discardCandidateNote(item);
   if (options.notify !== false) deps.toast(`${candidates.length}개 후보를 단어장에 저장했습니다`);
-  return { status: 'accepted', wordCount: candidates.length };
+  return { status: 'accepted', wordCount: candidates.length, noteID: note?.id };
 }

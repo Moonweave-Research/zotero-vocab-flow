@@ -184,6 +184,146 @@ test('summarizes mixed multi-item extraction results', async () => {
   assert.match(toasts[0], /1개 PDF 없음/);
 });
 
+test('reports when no Zotero item is selected for extraction', async () => {
+  const toasts: string[] = [];
+  (globalThis as any).Zotero = {
+    Items: { get: () => null },
+    getActiveZoteroPane: () => ({
+      getSelectedItems: () => []
+    })
+  };
+
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty', annotationCount: 0, cleanedCandidateNote: false }),
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runTaggedForTesting();
+
+  assert.equal(toasts[0], '선택된 Zotero 항목이 없습니다');
+});
+
+test('selects the generated candidate note after successful extraction', async () => {
+  const shown: number[] = [];
+  const pdfAttachment = { isPDFAttachment: () => true };
+  (globalThis as any).Zotero = {
+    Items: { get: () => pdfAttachment },
+    getActiveZoteroPane: () => ({
+      getSelectedItems: () => [{ id: 1, isRegularItem: () => true, getAttachments: () => [10] }]
+    })
+  };
+
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'candidates', candidateCount: 5, annotationCount: 2, noteID: 99 }),
+    showGeneratedNote: (noteID: number) => { shown.push(noteID); },
+    toast: () => {}
+  });
+
+  await manager.runTaggedForTesting();
+
+  assert.deepEqual(shown, [99]);
+});
+
+test('default generated-note selector uses Zotero pane fallbacks', async () => {
+  const pdfAttachment = { isPDFAttachment: () => true };
+  const selectedItem = { id: 1, isRegularItem: () => true, getAttachments: () => [10] };
+  const cases = [
+    {
+      pane: (shown: number[]) => ({
+        getSelectedItems: () => [selectedItem],
+        selectItem: (noteID: number) => { shown.push(noteID); }
+      }),
+      mainWindow: undefined
+    },
+    {
+      pane: (shown: number[]) => ({
+        getSelectedItems: () => [selectedItem],
+        itemsView: { selectItem: (noteID: number) => { shown.push(noteID); } }
+      }),
+      mainWindow: undefined
+    },
+    {
+      pane: (shown: number[]) => ({
+        getSelectedItems: () => [selectedItem],
+        itemTree: { selectItem: (noteID: number) => { shown.push(noteID); } }
+      }),
+      mainWindow: undefined
+    },
+    {
+      pane: (_shown: number[]) => ({
+        getSelectedItems: () => [selectedItem]
+      }),
+      mainWindow: (shown: number[]) => ({
+        ZoteroPane: { selectItem: (noteID: number) => { shown.push(noteID); } }
+      })
+    }
+  ];
+
+  for (const fallbackCase of cases) {
+    const shown: number[] = [];
+    (globalThis as any).Zotero = {
+      Items: { get: () => pdfAttachment },
+      getActiveZoteroPane: () => fallbackCase.pane(shown),
+      getMainWindow: () => fallbackCase.mainWindow?.(shown)
+    };
+    const manager = new VocabFlowMenuManager({
+      extractForItem: async () => ({ status: 'candidates', candidateCount: 5, annotationCount: 2, noteID: 99 }),
+      toast: () => {}
+    });
+
+    await manager.runTaggedForTesting();
+
+    assert.deepEqual(shown, [99]);
+  }
+});
+
+test('reports item-level extraction failures with the error reason', async () => {
+  const toasts: string[] = [];
+  const pdfAttachment = { isPDFAttachment: () => true };
+  (globalThis as any).Zotero = {
+    Items: { get: () => pdfAttachment },
+    getActiveZoteroPane: () => ({
+      getSelectedItems: () => [{ id: 1, isRegularItem: () => true, getAttachments: () => [10] }]
+    })
+  };
+
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => { throw new Error('DB write failed'); },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runTaggedForTesting();
+
+  assert.match(toasts[0], /단어 추출 중 오류가 발생했습니다/);
+  assert.match(toasts[0], /DB write failed/);
+});
+
+test('command handler reports unexpected command failures to the user', async () => {
+  const toasts: string[] = [];
+  let registered: any;
+  (globalThis as any).Zotero = {
+    MenuManager: {
+      registerMenu: (config: any) => {
+        registered = config;
+        return 'menu-id';
+      }
+    }
+  };
+
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty', annotationCount: 0, cleanedCandidateNote: false }),
+    setTranslationProvider: () => { throw new Error('preference store unavailable'); },
+    toast: (message: string) => { toasts.push(message); }
+  });
+  manager.register();
+
+  const disableMenu = registered.menus[0].menus.find((menu: any) => menu.l10nID === 'vocab-flow-translation-disable');
+  await disableMenu.onCommand();
+
+  assert.match(toasts[0], /Vocab Flow 명령 실행 실패/);
+  assert.match(toasts[0], /preference store unavailable/);
+});
+
 test('reports underline-empty items separately from successful items', async () => {
   const toasts: string[] = [];
   const pdfAttachment = { isPDFAttachment: () => true };
@@ -477,6 +617,45 @@ test('translates when the generated vocab note is selected', async () => {
     parentID: 7,
     isRegularItem: () => false,
     getNote: () => '<section data-vocab-flow="words"><table></table></section>'
+  };
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 7 ? parent : generatedNote) },
+    getActiveZoteroPane: () => ({
+      getSelectedItems: () => [generatedNote]
+    })
+  };
+
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    getTranslationProvider: () => 'google-free',
+    confirmExternalTranslation: () => true,
+    translateMissingMeaningsForItem: async (item: any) => {
+      translated.push(item.id);
+      return { status: 'translated', translatedCount: 1 };
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runTranslateForTesting();
+
+  assert.deepEqual(translated, [7]);
+  assert.equal(toasts[0], '1개 뜻 채움');
+});
+
+test('translates when a Zotero-sanitized generated vocab note is selected', async () => {
+  const toasts: string[] = [];
+  const translated: number[] = [];
+  const parent = { id: 7, isRegularItem: () => true };
+  const generatedNote = {
+    id: 99,
+    parentID: 7,
+    isRegularItem: () => false,
+    getNote: () => [
+      '<div data-schema-version="9">',
+      '<h2>단어장 (1) - Vocab Flow Wordbook</h2>',
+      '<table><tbody><tr><td><p>LCE matrix</p></td><td><p></p></td></tr></tbody></table>',
+      '</div>'
+    ].join('')
   };
   (globalThis as any).Zotero = {
     Items: { get: (id: number) => (id === 7 ? parent : generatedNote) },

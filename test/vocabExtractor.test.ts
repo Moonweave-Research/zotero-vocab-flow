@@ -15,9 +15,11 @@ function deps(candidates: Candidate[]) {
     writeCandidateNote: async (_parent: any, generated: Candidate[], options?: any) => {
       calls.wrote = generated;
       calls.writeOptions = options ?? null;
+      return { id: 99 };
     },
     discardCandidateNote: async () => {
       calls.discarded = true;
+      return calls.discarded;
     },
     toast: (msg: string) => calls.toasts.push(msg)
   };
@@ -27,8 +29,14 @@ test('writes candidate note and toasts count when candidates found', async () =>
   const d = deps([
     { label: 'polymer actuator', type: 'phrase', sourceText: 'polymer actuator', sourceIndex: 1 }
   ]);
-  await extractForItem({ id: 1 }, d);
+  const result = await extractForItem({ id: 1 }, d);
   assert.deepEqual(d.calls.wrote?.map((candidate) => candidate.label), ['polymer actuator']);
+  assert.deepEqual(result, {
+    status: 'candidates',
+    candidateCount: 1,
+    annotationCount: 1,
+    noteID: 99
+  });
   assert.deepEqual(d.calls.readOptions, { scope: 'color' });
   assert.deepEqual(d.calls.writeOptions, { scope: 'color' });
   assert.equal(d.calls.toasts.length, 1);
@@ -62,7 +70,8 @@ test('passes color and tag options through the reader and candidate note writer'
 
 test('does not write note and toasts when zero candidates after filter', async () => {
   const d = deps([]);
-  await extractForItem({ id: 1 }, d);
+  const result = await extractForItem({ id: 1 }, d);
+  assert.deepEqual(result, { status: 'empty', annotationCount: 0, cleanedCandidateNote: true });
   assert.equal(d.calls.wrote, null);
   assert.equal(d.calls.toasts.length, 1);
 });
