@@ -1,0 +1,25 @@
+name: Feature request
+description: Suggest an improvement to the researcher workflow
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Research workflow problem
+      description: What repeated Zotero vocabulary workflow does this improve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the smallest behavior change that would solve it.
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Data-safety or translation concerns
+      description: Note any external-service, unpublished-text, or generated-note risks.
+

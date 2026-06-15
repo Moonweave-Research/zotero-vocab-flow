@@ -1,12 +1,26 @@
 # Zotero Vocab Flow
 
+[![CI](https://github.com/Moonweave-Research/zotero-vocab-flow/actions/workflows/ci.yml/badge.svg)](https://github.com/Moonweave-Research/zotero-vocab-flow/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Moonweave-Research/zotero-vocab-flow?include_prereleases&label=release)](https://github.com/Moonweave-Research/zotero-vocab-flow/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Zotero 9](https://img.shields.io/badge/Zotero-9.0-blue)](addon/manifest.json)
+
 Zotero Vocab Flow is a Zotero 9 plugin that turns intentional PDF underline annotations into reviewable vocabulary candidates, then saves selected terms into a clean vocabulary note.
 
-This is a `v0.1.0-beta.1` prerelease for local/researcher workflow validation, following the original `v0.1.0-beta`.
+Current release: `v0.1.0-beta.1`. This is a prerelease for researcher workflow validation, not a stable public release.
 
 ## Why It Exists
 
 Research underlines are noisy. Some underlines mark important sentences, some mark terms to learn, and some are just reading traces. Vocab Flow keeps those separated by using a candidate-review stage before anything becomes a final vocab list.
+
+## What It Does
+
+- Extracts candidates from selected underline colors, a `vocab` annotation tag, or all underlines.
+- Creates a `단어장 후보 (...)` candidate note for review before translation.
+- Preserves excluded candidates across reruns.
+- Saves approved candidates into one generated `단어장 (...)` note per Zotero item.
+- Keeps manually entered Korean meanings when regenerating or filling blanks.
+- Offers opt-in translation aids only after review: inaccurate free `google-free`, or an OpenAI-compatible BYO API endpoint.
 
 ## Workflow
 
@@ -17,19 +31,9 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 5. Run `selected candidates로 단어장 만들기`.
 6. Fill `한국어 뜻 (Korean meaning)` manually, or use an optional translation aid after review.
 
-## Main Features
-
-- Color-specific extraction from green, yellow, blue, purple, red, or gray underline annotations.
-- `vocab` annotation-tag extraction for users who need a semantic marker independent of color.
-- Advanced all-underlines extraction for bulk review.
-- Candidate notes with source context and `Review before translation` guidance.
-- Exclusion persistence across candidate regeneration.
-- Final vocab notes with `용어 (Term)` and `한국어 뜻 (Korean meaning)` columns.
-- Optional translation aids that fill only blank Korean meanings after opt-in: inaccurate free `google-free`, or OpenAI-compatible BYO API.
-
 ## Install
 
-1. Download or build `zotero-vocab-flow.xpi`.
+1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease: [v0.1.0-beta.1](https://github.com/Moonweave-Research/zotero-vocab-flow/releases/tag/v0.1.0-beta.1).
 2. In Zotero, open `Tools` -> `Plugins`.
 3. Click the gear menu and choose `Install Plugin From File`.
 4. Select the XPI and restart Zotero if prompted.
@@ -43,6 +47,18 @@ npm run build
 
 The build creates `zotero-vocab-flow.xpi`.
 
+## Development
+
+```bash
+npm install
+npm run test:unit
+npm run typecheck
+npm run build
+npm run release:check
+```
+
+`npm run release:check` runs the unit suite, TypeScript check, XPI build, release-surface validation, and icon/package checks.
+
 ## Translation Aid
 
 Translation is not the core product promise. It is an optional aid.
@@ -54,6 +70,13 @@ Translation is not the core product promise. It is an optional aid.
 - The OpenAI-compatible BYO API provider sends terms to the endpoint you configure. You can choose whether stored underline context is sent with each term.
 - BYO API keys are stored in Zotero preferences on this machine.
 - Terms and optional context can be sent to external services when a translation aid is enabled.
+
+## Data Safety
+
+- Vocab Flow only updates or trashes notes with its generated-note ownership markers.
+- User notes that merely reuse `_vocab-extract` or `_vocab-candidates` tags are ignored unless they also contain Vocab Flow ownership markers.
+- Generated candidate notes are trashed only after accepted candidates are successfully written into the final wordbook note.
+- Translation never runs automatically during candidate generation or acceptance.
 
 ## Release Status
 
@@ -75,10 +98,15 @@ Known limits:
 
 ## Documentation
 
+- [Install Guide](docs/INSTALL.md)
 - [Usage Guide](docs/USAGE.md)
 - [Product Spec](docs/SPEC.md)
 - [Release Notes](docs/RELEASE_NOTES_v0.1.0-beta.md)
 - [Release Checklist](docs/RELEASE_CHECKLIST.md)
+
+## Contributing
+
+Bug reports and focused pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md) before filing security-sensitive issues.
 
 ## License
 

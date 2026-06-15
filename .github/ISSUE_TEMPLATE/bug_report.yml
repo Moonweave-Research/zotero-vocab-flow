@@ -1,0 +1,66 @@
+name: Bug report
+description: Report a reproducible Vocab Flow problem
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please avoid sharing private paper text, API keys, Zotero profile paths, or unpublished research details.
+  - type: input
+    id: zotero-version
+    attributes:
+      label: Zotero version
+      placeholder: "9.0.x"
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Vocab Flow version
+      placeholder: "v0.1.0-beta.1"
+    validations:
+      required: true
+  - type: dropdown
+    id: workflow
+    attributes:
+      label: Workflow area
+      options:
+        - Candidate extraction
+        - Candidate review
+        - Accepting candidates
+        - Korean meaning fill
+        - Installation or startup
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Use minimal sanitized examples.
+      placeholder: |
+        1. Select a Zotero item with a PDF.
+        2. Run Vocab Flow -> ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove private paper text, paths, API keys, and profile IDs before posting.
+      render: text
+
