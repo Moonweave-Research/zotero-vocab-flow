@@ -1,0 +1,19 @@
+{
+  "addons": {
+    "vocabflow@moon.com": {
+      "updates": [
+        {
+          "version": "0.1.1",
+          "update_link": "https://github.com/Moonweave-Research/zotero-vocab-flow/releases/download/v0.1.1-beta.1/zotero-vocab-flow.xpi",
+          "update_hash": "sha256:a618a623d33096dcba5f01f2bdc75a6f910e0075ffbe91cb5c039ccd1d6abb86",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "9.0",
+              "strict_max_version": "9.0.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

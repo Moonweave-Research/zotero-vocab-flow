@@ -7,7 +7,7 @@
 
 Zotero Vocab Flow is a Zotero 9 plugin that turns intentional PDF underline annotations into reviewable vocabulary candidates, then saves selected terms into a clean vocabulary note.
 
-Current release: `v0.1.0-beta.1`. This is a prerelease for researcher workflow validation, not a stable public release.
+Current release: `v0.1.1-beta.1`. This is a prerelease for researcher workflow validation, not a stable public release.
 
 ## Why It Exists
 
@@ -33,7 +33,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 
 ## Install
 
-1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease: [v0.1.0-beta.1](https://github.com/Moonweave-Research/zotero-vocab-flow/releases/tag/v0.1.0-beta.1).
+1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease: [v0.1.1-beta.1](https://github.com/Moonweave-Research/zotero-vocab-flow/releases/tag/v0.1.1-beta.1).
 2. In Zotero, open `Tools` -> `Plugins`.
 3. Click the gear menu and choose `Install Plugin From File`.
 4. Select the XPI and restart Zotero if prompted.
@@ -80,7 +80,7 @@ Translation is not the core product promise. It is an optional aid.
 
 ## Release Status
 
-Current release: `v0.1.0-beta.1`
+Current release: `v0.1.1-beta.1`
 
 Verified:
 
@@ -94,14 +94,14 @@ Known limits:
 - Candidate quality is heuristic.
 - Runtime coverage is strongest for green/all-underlines workflows.
 - Other color menus are registered and labeled, but need broader real-annotation fixtures before a stable public release.
-- The manifest currently contains an inert `update_url` kept for Zotero 9 local install validation.
+- Existing v0.1.0-beta.1 installs need one manual v0.1.1-beta.1 install before future Zotero update checks can use the real update manifest.
 
 ## Documentation
 
 - [Install Guide](docs/INSTALL.md)
 - [Usage Guide](docs/USAGE.md)
 - [Product Spec](docs/SPEC.md)
-- [Release Notes](docs/RELEASE_NOTES_v0.1.0-beta.md)
+- [Release Notes](docs/RELEASE_NOTES_v0.1.1-beta.md)
 - [Release Checklist](docs/RELEASE_CHECKLIST.md)
 
 ## Contributing

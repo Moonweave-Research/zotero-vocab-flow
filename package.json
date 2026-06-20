@@ -1,6 +1,6 @@
 {
   "name": "zotero-vocab-flow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build reviewable vocabulary candidates from Zotero PDF underlines",
   "license": "MIT",
   "homepage": "https://github.com/Moonweave-Research/zotero-vocab-flow#readme",

@@ -1,13 +1,13 @@
 {
   "manifest_version": 2,
   "name": "Zotero Vocab Flow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build reviewable vocabulary candidates from Zotero PDF underlines.",
   "author": "Reading Flow Team",
   "applications": {
     "zotero": {
       "id": "vocabflow@moon.com",
-      "update_url": "https://example.invalid/vocabflow-updates.json",
+      "update_url": "https://raw.githubusercontent.com/Moonweave-Research/zotero-vocab-flow/main/updates.json",
       "strict_min_version": "9.0",
       "strict_max_version": "9.0.*"
     }

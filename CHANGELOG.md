@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1-beta.1 - 2026-06-20
+
+- Replaced the inert Zotero `update_url` with a repository-hosted `updates.json` endpoint.
+- Added update manifest metadata for the GitHub prerelease XPI.
+- Extended release checks to validate the update URL, update manifest, compatibility bounds, and XPI SHA-256 hash.
+
 ## v0.1.0-beta.1 - 2026-06-15
 
 - Added OpenAI-compatible BYO translation provider support.
@@ -14,4 +20,3 @@
 - Initial prerelease for Zotero 9 local workflow validation.
 - Added color/tag/all-underlines candidate extraction.
 - Added candidate review notes, exclusion persistence, final wordbook note generation, and opt-in translation-aid framing.
-

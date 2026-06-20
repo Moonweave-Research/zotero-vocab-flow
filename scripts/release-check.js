@@ -4,6 +4,7 @@ const path = require('path');
 
 const ROOT = path.resolve(process.env.VOCAB_FLOW_ROOT || process.cwd());
 const XPI_NAME = 'zotero-vocab-flow.xpi';
+const UPDATE_MANIFEST_NAME = 'updates.json';
 
 function readJSON(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(ROOT, relativePath), 'utf8'));
@@ -45,6 +46,25 @@ function readZipEntry(zipPath, entryName) {
   return execFileSync('unzip', ['-p', zipPath, entryName], { cwd: ROOT });
 }
 
+function sha256File(filePath) {
+  const { createHash } = require('crypto');
+  return createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+}
+
+function assertHttpsUrl(value, label, failures) {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:') {
+      failures.push(`${label} must use https`);
+    }
+    if (url.hostname === 'example.invalid') {
+      failures.push(`${label} still points to example.invalid`);
+    }
+  } catch (error) {
+    failures.push(`${label} is not a valid URL: ${error.message}`);
+  }
+}
+
 function runChecks(options = {}) {
   const requireXpi = options.requireXpi !== false;
   const checks = [];
@@ -52,11 +72,24 @@ function runChecks(options = {}) {
   const packageJSON = readJSON('package.json');
   const manifest = readJSON('addon/manifest.json');
   const version = packageJSON.version;
+  const zoteroManifest = manifest.applications && manifest.applications.zotero;
+  const addonID = zoteroManifest && zoteroManifest.id;
 
   if (version === manifest.version) {
     checks.push(`package and manifest versions match: ${version}`);
   } else {
     failures.push(`package version ${version} does not match manifest version ${manifest.version}`);
+  }
+
+  if (!zoteroManifest || !addonID) {
+    failures.push('addon/manifest.json is missing applications.zotero.id');
+  } else {
+    assertHttpsUrl(zoteroManifest.update_url, 'manifest update_url', failures);
+    if (zoteroManifest.update_url && zoteroManifest.update_url.endsWith(`/${UPDATE_MANIFEST_NAME}`)) {
+      checks.push(`manifest update_url points to ${UPDATE_MANIFEST_NAME}`);
+    } else {
+      failures.push(`manifest update_url must point to ${UPDATE_MANIFEST_NAME}`);
+    }
   }
 
   const expectedBeta = `v${version}-beta`;
@@ -77,11 +110,13 @@ function runChecks(options = {}) {
   }
 
   const xpiPath = path.join(ROOT, XPI_NAME);
+  let xpiHash = null;
   if (!fs.existsSync(xpiPath)) {
     if (requireXpi) {
       failures.push(`${XPI_NAME} is missing; run npm run build first`);
     }
   } else {
+    xpiHash = sha256File(xpiPath);
     try {
       const xpiManifest = JSON.parse(readZipEntry(xpiPath, 'manifest.json').toString('utf8'));
       if (xpiManifest.version === version) {
@@ -103,6 +138,60 @@ function runChecks(options = {}) {
     } catch (error) {
       failures.push(`${XPI_NAME} icon check failed: ${error.message}`);
     }
+  }
+
+  try {
+    const updateManifest = readJSON(UPDATE_MANIFEST_NAME);
+    const updates = updateManifest.addons && addonID && updateManifest.addons[addonID] && updateManifest.addons[addonID].updates;
+    if (!Array.isArray(updates) || updates.length === 0) {
+      failures.push(`${UPDATE_MANIFEST_NAME} has no updates for ${addonID || 'the add-on id'}`);
+    } else {
+      const currentUpdate = updates.find((update) => update.version === version);
+      if (!currentUpdate) {
+        failures.push(`${UPDATE_MANIFEST_NAME} has no update entry for ${version}`);
+      } else {
+        checks.push(`${UPDATE_MANIFEST_NAME} contains update entry for ${version}`);
+        assertHttpsUrl(currentUpdate.update_link, `${UPDATE_MANIFEST_NAME} update_link`, failures);
+        const expectedReleasePath = `/Moonweave-Research/zotero-vocab-flow/releases/download/v${version}-beta.1/${XPI_NAME}`;
+        try {
+          const updateLink = new URL(currentUpdate.update_link);
+          if (updateLink.hostname === 'github.com' && updateLink.pathname === expectedReleasePath) {
+            checks.push(`${UPDATE_MANIFEST_NAME} update_link points to v${version}-beta.1 release asset`);
+          } else {
+            failures.push(`${UPDATE_MANIFEST_NAME} update_link must point to ${expectedReleasePath}`);
+          }
+        } catch {
+          // assertHttpsUrl already reports the invalid URL.
+        }
+
+        if (xpiHash) {
+          const expectedHash = `sha256:${xpiHash}`;
+          if (currentUpdate.update_hash === expectedHash) {
+            checks.push(`${UPDATE_MANIFEST_NAME} update_hash matches ${XPI_NAME}`);
+          } else {
+            failures.push(`${UPDATE_MANIFEST_NAME} update_hash ${currentUpdate.update_hash} does not match ${expectedHash}`);
+          }
+        } else if (typeof currentUpdate.update_hash === 'string' && /^sha256:[a-f0-9]{64}$/.test(currentUpdate.update_hash)) {
+          checks.push(`${UPDATE_MANIFEST_NAME} update_hash is a sha256 digest`);
+        } else {
+          failures.push(`${UPDATE_MANIFEST_NAME} update_hash must be a sha256 digest`);
+        }
+
+        const updateZotero = currentUpdate.applications && currentUpdate.applications.zotero;
+        if (
+          updateZotero &&
+          zoteroManifest &&
+          updateZotero.strict_min_version === zoteroManifest.strict_min_version &&
+          updateZotero.strict_max_version === zoteroManifest.strict_max_version
+        ) {
+          checks.push(`${UPDATE_MANIFEST_NAME} Zotero compatibility matches manifest`);
+        } else {
+          failures.push(`${UPDATE_MANIFEST_NAME} Zotero compatibility does not match addon/manifest.json`);
+        }
+      }
+    }
+  } catch (error) {
+    failures.push(`${UPDATE_MANIFEST_NAME} check failed: ${error.message}`);
   }
 
   return { checks, failures };

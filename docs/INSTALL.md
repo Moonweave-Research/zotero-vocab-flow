@@ -2,7 +2,7 @@
 
 ## Zotero GUI Install
 
-1. Build or download `zotero-vocab-flow.xpi`.
+1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease or build it locally.
 2. Open Zotero.
 3. Go to `Tools` -> `Plugins`.
 4. Open the gear menu.
@@ -33,3 +33,13 @@ Validated target:
 - macOS local profile validation
 
 The plugin manifest allows Zotero `9.0` through `9.0.*`.
+
+## Updates
+
+Vocab Flow uses Zotero's JSON update manifest:
+
+```text
+https://raw.githubusercontent.com/Moonweave-Research/zotero-vocab-flow/main/updates.json
+```
+
+Existing v0.1.0-beta.1 installs used an inert update URL. Install v0.1.1-beta.1 manually once to receive future updates through Zotero's plugin update check.

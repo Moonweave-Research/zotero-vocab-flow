@@ -20,8 +20,9 @@ test('release check validates the current repository release surface', () => {
   const result = runChecks({ requireXpi: false });
 
   assert.deepEqual(result.failures, []);
-  assert.ok(result.checks.includes('package and manifest versions match: 0.1.0'));
+  assert.ok(result.checks.includes('package and manifest versions match: 0.1.1'));
   assert.ok(result.checks.includes('addon/icon.png is 48x48'));
+  assert.ok(result.checks.includes('updates.json contains update entry for 0.1.1'));
 });
 
 test('release check uses version-aware release notes path', () => {
@@ -37,7 +38,40 @@ test('release check uses version-aware release notes path', () => {
   );
   fs.writeFileSync(
     path.join(tempRoot, 'addon', 'manifest.json'),
-    JSON.stringify({ version: '0.2.0' }),
+    JSON.stringify({
+      version: '0.2.0',
+      applications: {
+        zotero: {
+          id: 'vocabflow@moon.com',
+          update_url: 'https://raw.githubusercontent.com/Moonweave-Research/zotero-vocab-flow/main/updates.json',
+          strict_min_version: '9.0',
+          strict_max_version: '9.0.*'
+        }
+      }
+    }),
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(tempRoot, 'updates.json'),
+    JSON.stringify({
+      addons: {
+        'vocabflow@moon.com': {
+          updates: [
+            {
+              version: '0.2.0',
+              update_link: 'https://github.com/Moonweave-Research/zotero-vocab-flow/releases/download/v0.2.0-beta.1/zotero-vocab-flow.xpi',
+              update_hash: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+              applications: {
+                zotero: {
+                  strict_min_version: '9.0',
+                  strict_max_version: '9.0.*'
+                }
+              }
+            }
+          ]
+        }
+      }
+    }),
     'utf8'
   );
   fs.writeFileSync(path.join(tempRoot, 'README.md'), 'Current release: v0.2.0-beta\n', 'utf8');
