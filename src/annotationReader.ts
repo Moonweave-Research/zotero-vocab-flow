@@ -3,6 +3,15 @@
 
 export const DEFAULT_CANDIDATE_COLOR = '#5fb236';
 export const DEFAULT_CANDIDATE_TAG = 'vocab';
+export const SUPPORTED_CANDIDATE_COLORS = [
+  '#5fb236',
+  '#ffd400',
+  '#2ea8e5',
+  '#a28ae5',
+  '#ff6666',
+  '#aaaaaa'
+] as const;
+
 const CANDIDATE_COLOR_LABELS: Record<string, string> = {
   '#5fb236': '초록',
   '#ffd400': '노란',

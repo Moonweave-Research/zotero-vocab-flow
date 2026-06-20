@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_CANDIDATE_COLOR, readUnderlineTexts } from '../src/annotationReader';
+import { DEFAULT_CANDIDATE_COLOR, SUPPORTED_CANDIDATE_COLORS, readUnderlineTexts } from '../src/annotationReader';
 
 function annotation(type: string, text: string, sortIndex: string, color = DEFAULT_CANDIDATE_COLOR, tags: string[] = []) {
   return { annotationType: type, annotationText: text, annotationSortIndex: sortIndex, annotationColor: color, getTags: () => tags };
@@ -63,6 +63,24 @@ test('collects a chosen candidate color without requiring tag typing', () => {
   assert.deepEqual(readUnderlineTexts({ getAttachments: () => [15] }, { scope: 'color', color: '#a28ae5' }), [
     'purple vocab underline'
   ]);
+});
+
+test('collects each supported candidate color without leaking other colors', () => {
+  const textsByColor = new Map(SUPPORTED_CANDIDATE_COLORS.map((color) => [color, `${color} rheology actuator`]));
+  const annotations = SUPPORTED_CANDIDATE_COLORS.map((color, index) => annotation(
+    'underline',
+    textsByColor.get(color)!,
+    String(index + 1).padStart(5, '0'),
+    color
+  ));
+
+  Zotero.Items.get = () => ({ isPDFAttachment: () => true, getAnnotations: () => annotations });
+
+  for (const color of SUPPORTED_CANDIDATE_COLORS) {
+    assert.deepEqual(readUnderlineTexts({ getAttachments: () => [15] }, { scope: 'color', color }), [
+      textsByColor.get(color)
+    ]);
+  }
 });
 
 test('collects vocab-tagged underlines regardless of color', () => {

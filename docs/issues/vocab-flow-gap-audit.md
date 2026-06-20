@@ -183,6 +183,14 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
   - Final rebuilt XPI was recopied to the default profile after documentation updates; final local/profile hash: `31114930e10d8aebc138aa726129be463953f52b696ec29ca2f332f949cc0050`.
 - Final rebuilt XPI after candidate-stage clarity, bilingual wording, translation-aid positioning, v0.1.0 release prep, plugin icon replacement, and deterministic packaging was recopied to the default profile; final local/profile hash: `5515f32cb536bac99d9be67724d8904185ad2b0c97ecc239fec8b44deaca9eb3`.
 - Runtime QA for the v0.1.0-beta.1 release candidate verified green candidate extraction on item `9761`, accept flow, OpenAI-compatible BYO callback through a localhost mock endpoint, final Korean meaning fill, cleanup of notes `10011` and `10012`, active generated-note DB counts at zero, and final local/profile XPI hash `ed59c077c289b985b8ebf1f46d33caec3cbeafcc0ea0b35c94f6756c8b5d0afe`.
+- Controlled runtime color fixture after v0.1.1-beta.1 release prep:
+  - `scripts/zotero-runtime-color-fixture.js` creates a temporary Zotero journal article, a linked PDF attachment, and six real underline annotations with `Zotero.Annotations.saveFromJSON`.
+  - The fixture invokes the Vocab Flow color command path through `VocabFlowMenuManager.runColorForTesting` for green, yellow, blue, purple, red, and gray.
+  - Zotero `Tools > Developer > Run JavaScript` returned `ok: true` at `2026-06-20T15:15:04.490Z`.
+  - Results: green `#5fb236` note `10162` candidates `rheology, actuator`; yellow `#ffd400` note `10163` candidates `yellow, dielectric, elastomer`; blue `#2ea8e5` note `10164` candidates `blue, piezoelectric, polymer`; purple `#a28ae5` note `10165` candidates `purple, anisotropic, hydrogel`; red `#ff6666` note `10166` candidates `valence, actuator`; gray `#aaaaaa` note `10167` candidates `gray, ionic, conductor`.
+  - Each color-specific run checked that candidates included its own marker term and did not include the other fixture color marker terms.
+  - Cleanup deleted generated note IDs `10162,10163,10164,10165,10166,10167`; fixture item IDs were `10154,10155,10156,10157,10158,10159,10160,10161`.
+  - Read-only immutable DB check after cleanup found `active_candidate_notes=0` and `active_fixture_items=0` for the fixture item range.
 
 ## Acceptance Checklist
 
@@ -203,6 +211,7 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
 - [x] Generated note lookup is robust to missing Zotero tags when the Vocab Flow ownership marker is present.
 - [x] Users are not forced to reserve green underlines; multiple color menus and `vocab` tag mode are available.
 - [x] Runtime validation confirms color-specific menu registration, green color extraction, empty purple/tag paths, all-underlines extraction, accept flow, and cleanup.
+- [x] Controlled Zotero runtime fixture positively verifies green, yellow, blue, purple, red, and gray underline extraction with cleanup.
 - [x] Product/UX spec exists and captures non-goals, source-selection rules, data-safety invariants, and residual risks.
 - [x] Color-specific feedback names the selected color in candidate notes and empty-result toasts.
 - [x] Korean-first candidate exclusion works through `제외` and short `x` tokens.

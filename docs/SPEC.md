@@ -117,7 +117,7 @@ for generated test artifacts after cleanup.
 
 ## Known Residual Risks
 
-- The six color hex values must match Zotero's stored annotation colors. Green has been positively runtime-verified on item `9761`; other colors need positive annotation-level runtime fixtures before release confidence is complete.
+- The six color hex values must keep matching Zotero's stored annotation colors. A controlled Zotero runtime fixture positively verified green, yellow, blue, purple, red, and gray on 2026-06-20; rerun the fixture if Zotero changes its stored annotation palette.
 - Candidate quality is heuristic. Domain-specific phrase extraction is not a dictionary or language model.
 - The 30-candidate confirmation threshold is heuristic and may need adjustment after real use.
 - The `google-free` translation provider is inaccurate, context-free, and may be rate-limited or blocked. It should remain opt-in, clearly warned, and framed as a weak aid, not as Vocab Flow's core value.

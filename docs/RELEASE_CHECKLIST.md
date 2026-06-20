@@ -20,6 +20,6 @@
 
 ## Before Public Stable
 
-- [ ] Add positive runtime fixtures for all supported annotation colors.
+- [x] Add positive runtime fixtures for all supported annotation colors.
 - [ ] Decide whether translation providers remain menu-only or move to a settings pane.
 - [ ] Add release signing/distribution beyond GitHub prerelease assets if publishing beyond local beta users.
