@@ -1,5 +1,13 @@
 # Release Checklist
 
+## v0.1.2-beta
+
+- [x] Version set to `0.1.2` in `package.json`, `package-lock.json`, and `addon/manifest.json`.
+- [x] Representative paper underline fixtures added for candidate quality.
+- [x] Translation UX decision documented as menu-only experimental aid for this release line.
+- [x] Release process documents XPI naming, SHA-256 publication, GitHub/update-manifest trust model, and CI/local gate equivalence.
+- [x] `npm run release:check` validates test, typecheck, build, version sync, XPI manifest, icon size, update manifest, update hash, and release process documentation.
+
 ## v0.1.1-beta
 
 - [x] Version set to `0.1.1` in `package.json`, `package-lock.json`, and `addon/manifest.json`.
@@ -21,5 +29,6 @@
 ## Before Public Stable
 
 - [x] Add positive runtime fixtures for all supported annotation colors.
-- [ ] Decide whether translation providers remain menu-only or move to a settings pane.
-- [ ] Add release signing/distribution beyond GitHub prerelease assets if publishing beyond local beta users.
+- [x] Decide whether translation providers remain menu-only or move to a settings pane.
+- [x] Improve candidate quality with representative paper underline fixtures.
+- [x] Add release signing/distribution beyond GitHub prerelease assets if publishing beyond local beta users.

@@ -127,3 +127,25 @@ test('filters generic academic prose from all-underlines runtime extraction whil
   assert.ok(!labels.includes('comparing'));
   assert.ok(!labels.includes('ratios'));
 });
+
+test('uses representative paper underline fixtures to keep technical phrases and drop prose glue', () => {
+  const candidates = generateVocabCandidates([
+    'The shape-morphing LCE actuator showed photothermal response under near-infrared irradiation.',
+    'Single-cell RNA sequencing identified microglia activation signatures after cytokine exposure.',
+    'Transformer attention maps were evaluated with SHAP explanations across validation folds.'
+  ]);
+
+  const labels = candidates.map((candidate) => candidate.label);
+  assert.ok(labels.includes('near-infrared irradiation'));
+  assert.ok(labels.includes('Single-cell RNA sequencing'));
+  assert.ok(labels.includes('microglia activation'));
+  assert.ok(labels.includes('attention maps'));
+  assert.ok(labels.includes('LCE'));
+  assert.ok(labels.includes('SHAP'));
+  assert.ok(labels.includes('cytokine'));
+  assert.ok(!labels.includes('showed'));
+  assert.ok(!labels.includes('under'));
+  assert.ok(!labels.includes('after'));
+  assert.ok(!labels.includes('evaluated'));
+  assert.ok(!labels.includes('across'));
+});

@@ -6,6 +6,8 @@ const MALFORMED_FRAGMENTS = new Set(['stiffn', 'ncreasing', 'flippin', 'ntwi', '
 const STOPWORDS = new Set([
   'a',
   'an',
+  'across',
+  'after',
   'and',
   'are',
   'as',
@@ -27,6 +29,7 @@ const STOPWORDS = new Set([
   'enhance',
   'enhances',
   'error',
+  'evaluated',
   'exhibit',
   'exhibits',
   'effective',
@@ -57,6 +60,7 @@ const STOPWORDS = new Set([
   'ratio',
   'ratios',
   'samples',
+  'showed',
   'stable',
   'state',
   'that',
@@ -66,6 +70,7 @@ const STOPWORDS = new Set([
   'this',
   'those',
   'to',
+  'under',
   'up',
   'used',
   'remained',
@@ -83,7 +88,11 @@ const PHRASE_PATTERNS = [
   /\bhigh\s+stiffness\b/giu,
   /\bstandard\s+deviation\b/giu,
   /\bmodulus-to-density\b/giu,
-  /\bstrength-to-density\b/giu
+  /\bstrength-to-density\b/giu,
+  /\bnear-infrared\s+irradiation\b/giu,
+  /\bsingle-cell\s+RNA\s+sequencing\b/giu,
+  /\bmicroglia\s+activation\b/giu,
+  /\battention\s+maps?\b/giu
 ];
 
 export function generateVocabCandidates(rawTexts: string[]): Candidate[] {

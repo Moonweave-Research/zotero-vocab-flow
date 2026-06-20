@@ -65,6 +65,27 @@ function assertHttpsUrl(value, label, failures) {
   }
 }
 
+function checkReleaseProcessDoc(checks, failures) {
+  try {
+    const text = readText('docs/RELEASE_PROCESS.md');
+    const required = [
+      'zotero-vocab-flow.xpi',
+      'updates.json',
+      'update_hash',
+      'SHA-256',
+      'npm run release:check'
+    ];
+    const missing = required.filter((token) => !text.includes(token));
+    if (missing.length) {
+      failures.push(`docs/RELEASE_PROCESS.md is missing release policy terms: ${missing.join(', ')}`);
+    } else {
+      checks.push('docs/RELEASE_PROCESS.md defines the release artifact and checksum policy');
+    }
+  } catch (error) {
+    failures.push(`docs/RELEASE_PROCESS.md check failed: ${error.message}`);
+  }
+}
+
 function runChecks(options = {}) {
   const requireXpi = options.requireXpi !== false;
   const checks = [];
@@ -193,6 +214,8 @@ function runChecks(options = {}) {
   } catch (error) {
     failures.push(`${UPDATE_MANIFEST_NAME} check failed: ${error.message}`);
   }
+
+  checkReleaseProcessDoc(checks, failures);
 
   return { checks, failures };
 }

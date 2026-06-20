@@ -20,9 +20,10 @@ test('release check validates the current repository release surface', () => {
   const result = runChecks({ requireXpi: false });
 
   assert.deepEqual(result.failures, []);
-  assert.ok(result.checks.includes('package and manifest versions match: 0.1.1'));
+  assert.ok(result.checks.includes('package and manifest versions match: 0.1.2'));
   assert.ok(result.checks.includes('addon/icon.png is 48x48'));
-  assert.ok(result.checks.includes('updates.json contains update entry for 0.1.1'));
+  assert.ok(result.checks.includes('updates.json contains update entry for 0.1.2'));
+  assert.ok(result.checks.includes('docs/RELEASE_PROCESS.md defines the release artifact and checksum policy'));
 });
 
 test('release check uses version-aware release notes path', () => {
@@ -83,6 +84,19 @@ test('release check uses version-aware release notes path', () => {
   fs.writeFileSync(
     path.join(tempRoot, 'docs', 'RELEASE_NOTES_v0.2.0-beta.md'),
     '# Release Notes\n\nVersion: v0.2.0-beta\n',
+    'utf8'
+  );
+  fs.writeFileSync(
+    path.join(tempRoot, 'docs', 'RELEASE_PROCESS.md'),
+    [
+      '# Release Process',
+      '',
+      'Published asset: zotero-vocab-flow.xpi',
+      'Update manifest: updates.json',
+      'Checksum field: update_hash',
+      'Release body checksum: SHA-256',
+      'Gate: npm run release:check'
+    ].join('\n'),
     'utf8'
   );
 

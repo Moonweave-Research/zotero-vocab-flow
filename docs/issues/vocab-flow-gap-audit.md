@@ -191,6 +191,12 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
   - Each color-specific run checked that candidates included its own marker term and did not include the other fixture color marker terms.
   - Cleanup deleted generated note IDs `10162,10163,10164,10165,10166,10167`; fixture item IDs were `10154,10155,10156,10157,10158,10159,10160,10161`.
   - Read-only immutable DB check after cleanup found `active_candidate_notes=0` and `active_fixture_items=0` for the fixture item range.
+- Public-stable readiness pass:
+  - Candidate extraction now has representative paper underline fixtures for materials, biomedical, and machine-learning prose.
+  - The fixtures keep technical phrases such as `near-infrared irradiation`, `Single-cell RNA sequencing`, `microglia activation`, and `attention maps`, while dropping prose glue such as `showed`, `under`, `after`, `evaluated`, and `across`.
+  - Stable translation UX decision: keep translation as a menu-only experimental aid for this release line; defer a settings pane until provider configuration grows.
+  - `docs/RELEASE_PROCESS.md` defines GitHub prerelease assets as sufficient for beta, stable XPI artifact naming, SHA-256 checksum publication in `updates.json` and release bodies, and the install trust model.
+  - `scripts/release-check.js` now verifies that the release process document defines the artifact and checksum policy.
 
 ## Acceptance Checklist
 
@@ -228,3 +234,6 @@ Vocab Flow must not treat every underlined sentence as a final vocabulary list. 
 - [x] Provider no-result runs are reported separately from items with no blank meaning cells.
 - [x] Candidate review notes use a compact Korean-first table and do not expose internal `candidate/type/decision/source` columns as the primary user interface.
 - [x] Generated candidate and final notes use researcher-facing Korean labels instead of plugin-state wording.
+- [x] Representative paper underline fixtures cover candidate-quality tuning while keeping the candidate-review stage as the safety boundary.
+- [x] Translation provider UX decision is documented for stable: menu-only experimental aid, default off, settings pane deferred.
+- [x] Release process defines beta/stable artifact naming, checksum publication, and GitHub/update-manifest trust model.

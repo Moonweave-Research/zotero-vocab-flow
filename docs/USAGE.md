@@ -8,6 +8,7 @@
 - 색상으로도 구분이 어렵다면 Zotero annotation tag `vocab`이 붙은 밑줄만 읽는 메뉴를 사용할 수 있습니다.
 - `고급: 모든 밑줄에서 term candidates 만들기...`는 기존 밑줄을 한 번에 훑는 고급 경로이며, 독서용 밑줄까지 섞일 수 있습니다.
 - 영한 뜻 채우기는 보조 기능입니다. 기본적으로 꺼져 있으며, `google-free` 또는 OpenAI-compatible BYO API provider를 직접 켠 경우에만 외부 번역 요청을 보냅니다.
+- 현재 stable UX 결정은 번역 보조 기능을 메뉴 기반으로 유지하는 것입니다. 별도 settings pane은 provider 설정이 더 복잡해질 때 추가합니다.
 
 ## 권장 흐름
 

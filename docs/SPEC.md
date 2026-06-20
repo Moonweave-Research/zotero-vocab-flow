@@ -68,6 +68,8 @@ The final note must:
 
 Korean meaning fill is an optional aid and is disabled by default.
 
+Public stable UX decision: translation remains a menu-only experimental aid for this release line. A settings pane is intentionally deferred until provider configuration becomes complex enough to justify persistent UI surface area. Removing translation from stable is not necessary because default-off behavior, external-service confirmations, large-run confirmations, and manual Korean meaning preservation are already required invariants.
+
 Supported provider values:
 
 - `off`: default. No network request is made.
@@ -118,7 +120,7 @@ for generated test artifacts after cleanup.
 ## Known Residual Risks
 
 - The six color hex values must keep matching Zotero's stored annotation colors. A controlled Zotero runtime fixture positively verified green, yellow, blue, purple, red, and gray on 2026-06-20; rerun the fixture if Zotero changes its stored annotation palette.
-- Candidate quality is heuristic. Domain-specific phrase extraction is not a dictionary or language model.
+- Candidate quality is heuristic. Real-paper-style fixtures cover materials, biomedical, and machine-learning underlines, but domain-specific phrase extraction is not a dictionary or language model.
 - The 30-candidate confirmation threshold is heuristic and may need adjustment after real use.
 - The `google-free` translation provider is inaccurate, context-free, and may be rate-limited or blocked. It should remain opt-in, clearly warned, and framed as a weak aid, not as Vocab Flow's core value.
-- Translation provider control is menu-based rather than a full settings pane. This is still a rough MVP surface and should move to a settings pane if provider configuration grows.
+- Translation provider control is menu-based rather than a full settings pane. This is the stable decision for the current release line, but it should move to a settings pane if provider configuration grows.
