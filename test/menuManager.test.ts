@@ -50,10 +50,14 @@ test('registers menu commands for user-facing translation provider control', () 
   const l10nIDs = registered.menus[0].menus.map((menu: any) => menu.l10nID);
   assert.ok(l10nIDs.includes('vocab-flow-translation-enable-google-free'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-configure-openai-compatible'));
+  assert.ok(l10nIDs.includes('vocab-flow-translation-configure-gemini'));
+  assert.ok(l10nIDs.includes('vocab-flow-translation-configure-anthropic'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-disable'));
   const labels = registered.menus[0].menus.map((menu: any) => menu.label);
   assert.ok(labels.includes('부정확할 수 있는 무료 번역 보조 기능 켜기...'));
   assert.ok(labels.includes('OpenAI-compatible BYO API 설정...'));
+  assert.ok(labels.includes('Gemini BYO API 설정...'));
+  assert.ok(labels.includes('Claude/Anthropic BYO API 설정...'));
   assert.ok(labels.includes('번역 보조 기능 끄기'));
 });
 
@@ -138,6 +142,54 @@ test('does not configure OpenAI-compatible BYO API when setup is canceled', asyn
 
   assert.deepEqual(saved, []);
   assert.equal(toasts[0], 'OpenAI-compatible BYO API 설정을 취소했습니다');
+});
+
+test('configures Gemini BYO API translation through the menu', async () => {
+  const toasts: string[] = [];
+  const settings = {
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+    apiKey: 'gemini-test-key',
+    model: 'gemini-2.5-flash',
+    sendContext: true
+  };
+  const saved: unknown[] = [];
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    configureGeminiTranslation: () => settings,
+    setGeminiTranslationPrefs: (value) => {
+      saved.push(value);
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runConfigureGeminiTranslationForTesting();
+
+  assert.deepEqual(saved, [settings]);
+  assert.equal(toasts[0], 'Gemini BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다');
+});
+
+test('configures Claude/Anthropic BYO API translation through the menu', async () => {
+  const toasts: string[] = [];
+  const settings = {
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    apiKey: 'anthropic-test-key',
+    model: 'claude-sonnet-4-20250514',
+    sendContext: false
+  };
+  const saved: unknown[] = [];
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    configureAnthropicTranslation: () => settings,
+    setAnthropicTranslationPrefs: (value) => {
+      saved.push(value);
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runConfigureAnthropicTranslationForTesting();
+
+  assert.deepEqual(saved, [settings]);
+  assert.equal(toasts[0], 'Claude/Anthropic BYO API를 켰습니다. 번역 시 용어만 전송합니다');
 });
 
 test('disables translation through the menu', async () => {

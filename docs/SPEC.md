@@ -75,6 +75,8 @@ Supported provider values:
 - `off`: default. No network request is made.
 - `google-free`: inaccurate free no-key Google Translate endpoint. It sends terms without source context and is not guaranteed for research-term quality, availability, rate limits, or long-term stability.
 - `openai-compatible`: user-configured Chat Completions-compatible endpoint, model, and API key. The user chooses whether stored underline context is sent with each term.
+- `gemini`: user-configured Gemini `generateContent` endpoint, model, and API key. The user chooses whether stored underline context is sent with each term.
+- `anthropic`: user-configured Claude/Anthropic Messages API endpoint, model, and API key. The user chooses whether stored underline context is sent with each term.
 
 The translation command must:
 
@@ -87,15 +89,21 @@ The translation command must:
 - Never run automatically during candidate generation or accept flow.
 - Show an external-service confirmation before sending terms to `google-free`.
 - Show an external-service confirmation before sending terms or context to `openai-compatible`.
+- Show an external-service confirmation before sending terms or context to `gemini`.
+- Show an external-service confirmation before sending terms or context to `anthropic`.
 - Show an additional confirmation when the selected item set has 30 or more blank meanings to translate.
 - Keep partial successes when some individual translation requests fail.
+- Avoid duplicate `google-free` requests for repeated terms in one translation run.
 
-OpenAI-compatible BYO API settings:
+BYO API settings:
 
 - Store endpoint URL, model name, API key, and context-send toggle in Zotero preferences.
 - Warn that the API key is stored locally in Zotero preferences.
 - Warn that enabling context sends stored underline context, which may include unpublished paper text, to the configured external API.
 - If context sending is off, only terms are sent.
+- OpenAI-compatible providers use Chat Completions request/response shape.
+- Gemini uses `generateContent` and requests JSON output.
+- Anthropic uses the Messages API and parses text content blocks as JSON.
 
 ## Data Safety
 

@@ -3,9 +3,9 @@
     "vocabflow@moon.com": {
       "updates": [
         {
-          "version": "0.1.2",
-          "update_link": "https://github.com/Moonweave-Research/zotero-vocab-flow/releases/download/v0.1.2-beta.1/zotero-vocab-flow.xpi",
-          "update_hash": "sha256:8a50ddd214c9fcf129c22ac520524a711b820ed10394d9e1b0ede494297c8e60",
+          "version": "0.1.3",
+          "update_link": "https://github.com/Moonweave-Research/zotero-vocab-flow/releases/download/v0.1.3-beta.1/zotero-vocab-flow.xpi",
+          "update_hash": "sha256:d8f7bd76c37500169e5e39ec054354e8b4a552ea28c26ebfc39a40d50ffec620",
           "applications": {
             "zotero": {
               "strict_min_version": "9.0",

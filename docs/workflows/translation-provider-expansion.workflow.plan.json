@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "keelplane.workflow-plan.v1",
+  "title": "Translation provider expansion",
+  "date": "2026-06-21",
+  "goal": "Allow Vocab Flow users to use direct Gemini and Claude/Anthropic BYO APIs, keep OpenAI-compatible gateways for cheap multi-provider routing, and reduce avoidable google-free requests without changing the review-first vocabulary workflow.",
+  "constraints": [
+    "No new runtime dependencies.",
+    "No provider is enabled by default.",
+    "Never send source context unless the user enables the provider-specific context toggle.",
+    "Keep google-free framed as inaccurate, unofficial, and review-only.",
+    "Do not require remote CI or paid provider calls for verification."
+  ],
+  "architecture": {
+    "pattern": "adapter-with-shared-parser",
+    "entrypoints": [
+      "src/translator.ts:createTranslatorFromPrefs",
+      "src/menuManager.ts:translation provider menu commands"
+    ],
+    "providers": [
+      {
+        "id": "google-free",
+        "role": "no-key weak aid",
+        "requestShape": "unofficial translate.googleapis.com GET",
+        "contextPolicy": "terms only",
+        "changes": [
+          "dedupe repeated terms per translation run",
+          "cache successful terms inside the translator instance"
+        ]
+      },
+      {
+        "id": "openai-compatible",
+        "role": "gateway for OpenAI, OpenRouter, LiteLLM, local LLM proxies, and other Chat Completions-compatible endpoints",
+        "requestShape": "POST Chat Completions",
+        "contextPolicy": "provider setting controls term-only vs term-plus-context"
+      },
+      {
+        "id": "gemini",
+        "role": "direct Google Gemini BYO API",
+        "requestShape": "POST generateContent with responseMimeType application/json",
+        "contextPolicy": "provider setting controls term-only vs term-plus-context"
+      },
+      {
+        "id": "anthropic",
+        "role": "direct Claude/Anthropic BYO API",
+        "requestShape": "POST Messages API",
+        "contextPolicy": "provider setting controls term-only vs term-plus-context"
+      }
+    ]
+  },
+  "implementationSlices": [
+    {
+      "id": "S1",
+      "name": "translator core",
+      "status": "completed",
+      "tests": [
+        "create Gemini translator from prefs and parse JSON response",
+        "create Anthropic translator from prefs and parse text block JSON response",
+        "store provider-specific prefs and provider id together",
+        "dedupe google-free duplicate terms in one run"
+      ]
+    },
+    {
+      "id": "S2",
+      "name": "menu wiring",
+      "status": "completed",
+      "tests": [
+        "register Gemini and Claude/Anthropic configuration menu items",
+        "save Gemini settings from menu configuration",
+        "save Anthropic settings from menu configuration"
+      ]
+    },
+    {
+      "id": "S3",
+      "name": "docs and release gate",
+      "status": "completed",
+      "tests": [
+        "unit tests",
+        "typecheck",
+        "build"
+      ]
+    }
+  ],
+  "edgeCases": [
+    "Duplicate terms should not create duplicate google-free network calls.",
+    "Provider response JSON inside Markdown fences should still parse.",
+    "Unknown provider pref values must fall back to off.",
+    "Missing API key, model, or endpoint must return no translations without network calls.",
+    "Provider output keys not exactly matching requested terms must be ignored.",
+    "Partial google-free failures must keep earlier successful translations.",
+    "Context text may contain quotes/newlines and must be JSON encoded inside the prompt payload.",
+    "User cancellation in menu prompts must not alter saved provider prefs."
+  ],
+  "holesAndMitigations": [
+    {
+      "hole": "Native provider APIs can drift.",
+      "mitigation": "Keep request builders small and covered by shape tests; document OpenAI-compatible gateways as the most flexible path."
+    },
+    {
+      "hole": "No live Gemini/Anthropic calls in CI because API keys are user-owned.",
+      "mitigation": "Mock exact request/response shapes locally and leave manual smoke testing as release evidence."
+    },
+    {
+      "hole": "google-free is unofficial and can rate-limit or block.",
+      "mitigation": "Avoid concurrency by default; only eliminate duplicate requests and keep warnings visible."
+    },
+    {
+      "hole": "Provider keys are stored in Zotero preferences.",
+      "mitigation": "Warn before configuration and never commit or log keys."
+    }
+  ],
+  "doneSignals": [
+    "Tests cover each new provider adapter and menu path.",
+    "Docs explain direct Gemini/Claude, OpenAI-compatible gateways, and google-free limits.",
+    "Local unit tests, typecheck, and build pass."
+  ]
+}

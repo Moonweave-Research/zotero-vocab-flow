@@ -1,5 +1,15 @@
 # Release Checklist
 
+## v0.1.3-beta
+
+- [x] Version set to `0.1.3` in `package.json`, `package-lock.json`, and `addon/manifest.json`.
+- [x] Direct Gemini BYO API translation provider added.
+- [x] Direct Claude/Anthropic BYO API translation provider added.
+- [x] OpenAI-compatible BYO API documented as the gateway path for OpenRouter, LiteLLM, local proxies, and other cheap model routing.
+- [x] `google-free` duplicate term requests deduped per translation run.
+- [x] Translation provider expansion design/spec and edge-case review documented.
+- [x] `npm run release:check` validates test, typecheck, build, version sync, XPI manifest, icon size, update manifest, update hash, and release process documentation.
+
 ## v0.1.2-beta
 
 - [x] Version set to `0.1.2` in `package.json`, `package-lock.json`, and `addon/manifest.json`.

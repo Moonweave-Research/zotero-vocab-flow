@@ -4,10 +4,16 @@ import { countAcceptedCandidateLabels as defaultCandidateCounter } from './candi
 import { DEFAULT_CANDIDATE_COLOR, DEFAULT_CANDIDATE_TAG, ReadUnderlineOptions, describeCandidateColor } from './annotationReader';
 import { FillMeaningsResult, countMissingMeanings as defaultMissingMeaningCounter, fillMissingMeanings as defaultMeaningFiller } from './noteWriter';
 import {
+  AnthropicTranslationSettings,
+  GeminiTranslationSettings,
   OpenAICompatibleTranslationSettings,
   TranslationProvider,
   createTranslatorFromPrefs,
+  getAnthropicTranslationSettings,
+  getGeminiTranslationSettings,
   getOpenAICompatibleTranslationSettings,
+  setAnthropicTranslationPrefs,
+  setGeminiTranslationPrefs,
   setOpenAICompatibleTranslationPrefs,
   setTranslationProviderPref
 } from './translator';
@@ -33,8 +39,12 @@ interface MenuDeps {
   getTranslationProvider?: () => TranslationProvider;
   setTranslationProvider?: (provider: TranslationProvider) => void;
   setOpenAICompatibleTranslationPrefs?: (settings: OpenAICompatibleTranslationSettings) => void;
+  setGeminiTranslationPrefs?: (settings: GeminiTranslationSettings) => void;
+  setAnthropicTranslationPrefs?: (settings: AnthropicTranslationSettings) => void;
   confirmEnableTranslation?: () => boolean;
   configureOpenAICompatibleTranslation?: () => OpenAICompatibleTranslationSettings | null;
+  configureGeminiTranslation?: () => GeminiTranslationSettings | null;
+  configureAnthropicTranslation?: () => AnthropicTranslationSettings | null;
   countMissingMeaningsForItem?: (item: any) => number;
   confirmExternalTranslation?: (provider: Exclude<TranslationProvider, 'off'>) => boolean;
   confirmLargeTranslation?: (itemCount: number, wordCount: number) => boolean;
@@ -51,8 +61,12 @@ const DEFAULT_DEPS: MenuDeps = {
   getTranslationProvider: () => createTranslatorFromPrefs().provider,
   setTranslationProvider: setTranslationProviderPref,
   setOpenAICompatibleTranslationPrefs: setOpenAICompatibleTranslationPrefs,
+  setGeminiTranslationPrefs: setGeminiTranslationPrefs,
+  setAnthropicTranslationPrefs: setAnthropicTranslationPrefs,
   confirmEnableTranslation: confirmEnableTranslation,
   configureOpenAICompatibleTranslation: configureOpenAICompatibleTranslation,
+  configureGeminiTranslation: configureGeminiTranslation,
+  configureAnthropicTranslation: configureAnthropicTranslation,
   countMissingMeaningsForItem: defaultMissingMeaningCounter,
   confirmExternalTranslation: confirmExternalTranslation,
   confirmLargeTranslation: confirmLargeTranslation,
@@ -138,6 +152,18 @@ export class VocabFlowMenuManager {
               },
               {
                 menuType: 'menuitem',
+                l10nID: 'vocab-flow-translation-configure-gemini',
+                label: 'Gemini BYO API 설정...',
+                onCommand: () => this.handleCommand('translation-configure', () => this.runConfigureGeminiTranslation())
+              },
+              {
+                menuType: 'menuitem',
+                l10nID: 'vocab-flow-translation-configure-anthropic',
+                label: 'Claude/Anthropic BYO API 설정...',
+                onCommand: () => this.handleCommand('translation-configure', () => this.runConfigureAnthropicTranslation())
+              },
+              {
+                menuType: 'menuitem',
                 l10nID: 'vocab-flow-translation-disable',
                 label: '번역 보조 기능 끄기',
                 onCommand: () => this.handleCommand('translation-disable', () => this.runDisableTranslation())
@@ -185,6 +211,14 @@ export class VocabFlowMenuManager {
 
   public async runConfigureOpenAICompatibleTranslationForTesting() {
     await this.runConfigureOpenAICompatibleTranslation();
+  }
+
+  public async runConfigureGeminiTranslationForTesting() {
+    await this.runConfigureGeminiTranslation();
+  }
+
+  public async runConfigureAnthropicTranslationForTesting() {
+    await this.runConfigureAnthropicTranslation();
   }
 
   public async runDisableTranslationForTesting() {
@@ -307,7 +341,7 @@ export class VocabFlowMenuManager {
 
     const provider = (this.deps.getTranslationProvider ?? DEFAULT_DEPS.getTranslationProvider)!();
     if (provider === 'off') {
-      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow에서 무료 번역 보조 기능을 켜거나 OpenAI-compatible BYO API를 설정하세요');
+      this.deps.toast('번역 보조 기능이 꺼져 있습니다. Vocab Flow에서 무료 번역 보조 기능을 켜거나 BYO API를 설정하세요');
       return;
     }
     const confirmExternal = this.deps.confirmExternalTranslation ?? DEFAULT_DEPS.confirmExternalTranslation;
@@ -370,6 +404,34 @@ export class VocabFlowMenuManager {
     this.deps.toast(settings.sendContext
       ? 'OpenAI-compatible BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다'
       : 'OpenAI-compatible BYO API를 켰습니다. 번역 시 용어만 전송합니다');
+  }
+
+  private async runConfigureGeminiTranslation() {
+    const configure = this.deps.configureGeminiTranslation ?? DEFAULT_DEPS.configureGeminiTranslation;
+    const settings = configure!();
+    if (!settings) {
+      this.deps.toast('Gemini BYO API 설정을 취소했습니다');
+      return;
+    }
+    const setPrefs = this.deps.setGeminiTranslationPrefs ?? DEFAULT_DEPS.setGeminiTranslationPrefs;
+    setPrefs!(settings);
+    this.deps.toast(settings.sendContext
+      ? 'Gemini BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다'
+      : 'Gemini BYO API를 켰습니다. 번역 시 용어만 전송합니다');
+  }
+
+  private async runConfigureAnthropicTranslation() {
+    const configure = this.deps.configureAnthropicTranslation ?? DEFAULT_DEPS.configureAnthropicTranslation;
+    const settings = configure!();
+    if (!settings) {
+      this.deps.toast('Claude/Anthropic BYO API 설정을 취소했습니다');
+      return;
+    }
+    const setPrefs = this.deps.setAnthropicTranslationPrefs ?? DEFAULT_DEPS.setAnthropicTranslationPrefs;
+    setPrefs!(settings);
+    this.deps.toast(settings.sendContext
+      ? 'Claude/Anthropic BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다'
+      : 'Claude/Anthropic BYO API를 켰습니다. 번역 시 용어만 전송합니다');
   }
 
   private async runDisableTranslation() {
@@ -502,13 +564,29 @@ function confirmLargeAccept(itemCount: number, wordCount: number): boolean {
 }
 
 function confirmExternalTranslation(provider: Exclude<TranslationProvider, 'off'>): boolean {
-  const message = provider === 'openai-compatible' && getOpenAICompatibleTranslationSettings().sendContext
-    ? 'OpenAI-compatible BYO API 자동 번역은 빈 영어 단어/구와 저장된 밑줄 문맥을 사용자가 설정한 외부 API로 전송합니다. 계속할까요?'
-    : `${provider} 자동 번역은 빈 영어 단어/구를 외부 번역 서비스로 전송합니다. 계속할까요?`;
+  const label = providerLabel(provider);
+  const sendsContext = providerSendsContext(provider);
+  const message = sendsContext
+    ? `${label} 자동 번역은 빈 영어 단어/구와 저장된 밑줄 문맥을 사용자가 설정한 외부 API로 전송합니다. 계속할까요?`
+    : `${label} 자동 번역은 빈 영어 단어/구를 외부 번역 서비스로 전송합니다. 계속할까요?`;
   const win = Zotero.getMainWindow?.();
   if (typeof win?.confirm === 'function') return win.confirm(message);
   if (typeof globalThis.confirm === 'function') return globalThis.confirm(message);
   return true;
+}
+
+function providerSendsContext(provider: Exclude<TranslationProvider, 'off'>): boolean {
+  if (provider === 'openai-compatible') return getOpenAICompatibleTranslationSettings().sendContext;
+  if (provider === 'gemini') return getGeminiTranslationSettings().sendContext;
+  if (provider === 'anthropic') return getAnthropicTranslationSettings().sendContext;
+  return false;
+}
+
+function providerLabel(provider: Exclude<TranslationProvider, 'off'>): string {
+  if (provider === 'openai-compatible') return 'OpenAI-compatible BYO API';
+  if (provider === 'gemini') return 'Gemini BYO API';
+  if (provider === 'anthropic') return 'Claude/Anthropic BYO API';
+  return 'google-free';
 }
 
 function confirmEnableTranslation(): boolean {
@@ -535,6 +613,58 @@ function configureOpenAICompatibleTranslation(): OpenAICompatibleTranslationSett
   if (!apiKey?.trim()) return null;
   const sendContext = confirmFn
     ? confirmFn('번역 품질을 위해 저장된 밑줄 문맥도 외부 API로 전송할까요? 취소하면 용어만 전송합니다.')
+    : false;
+
+  return {
+    endpoint,
+    apiKey,
+    model,
+    sendContext
+  };
+}
+
+function configureGeminiTranslation(): GeminiTranslationSettings | null {
+  const win = Zotero.getMainWindow?.();
+  const confirmFn = typeof win?.confirm === 'function' ? win.confirm.bind(win) : globalThis.confirm?.bind(globalThis);
+  const promptFn = typeof win?.prompt === 'function' ? win.prompt.bind(win) : globalThis.prompt?.bind(globalThis);
+  if (confirmFn && !confirmFn('Gemini BYO API를 설정하면 API key가 Zotero preference에 저장되고, 번역 실행 시 용어가 Google Gemini API로 전송됩니다. 문맥 전송은 다음 단계에서 선택합니다. 계속할까요?')) return null;
+  if (!promptFn) return null;
+
+  const current = getGeminiTranslationSettings();
+  const endpoint = promptFn('Gemini generateContent base URL', current.endpoint);
+  if (!endpoint?.trim()) return null;
+  const model = promptFn('사용할 Gemini model 이름', current.model);
+  if (!model?.trim()) return null;
+  const apiKey = promptFn('Gemini API key', current.apiKey);
+  if (!apiKey?.trim()) return null;
+  const sendContext = confirmFn
+    ? confirmFn('번역 품질을 위해 저장된 밑줄 문맥도 Gemini API로 전송할까요? 취소하면 용어만 전송합니다.')
+    : false;
+
+  return {
+    endpoint,
+    apiKey,
+    model,
+    sendContext
+  };
+}
+
+function configureAnthropicTranslation(): AnthropicTranslationSettings | null {
+  const win = Zotero.getMainWindow?.();
+  const confirmFn = typeof win?.confirm === 'function' ? win.confirm.bind(win) : globalThis.confirm?.bind(globalThis);
+  const promptFn = typeof win?.prompt === 'function' ? win.prompt.bind(win) : globalThis.prompt?.bind(globalThis);
+  if (confirmFn && !confirmFn('Claude/Anthropic BYO API를 설정하면 API key가 Zotero preference에 저장되고, 번역 실행 시 용어가 Anthropic API로 전송됩니다. 문맥 전송은 다음 단계에서 선택합니다. 계속할까요?')) return null;
+  if (!promptFn) return null;
+
+  const current = getAnthropicTranslationSettings();
+  const endpoint = promptFn('Anthropic Messages API endpoint URL', current.endpoint);
+  if (!endpoint?.trim()) return null;
+  const model = promptFn('사용할 Claude model 이름', current.model);
+  if (!model?.trim()) return null;
+  const apiKey = promptFn('Anthropic API key', current.apiKey);
+  if (!apiKey?.trim()) return null;
+  const sendContext = confirmFn
+    ? confirmFn('번역 품질을 위해 저장된 밑줄 문맥도 Anthropic API로 전송할까요? 취소하면 용어만 전송합니다.')
     : false;
 
   return {

@@ -7,7 +7,7 @@
 - 초록색을 이미 다른 용도로 쓴다면 노란색, 파란색, 보라색, 빨간색, 회색 밑줄 메뉴를 대신 쓰면 됩니다.
 - 색상으로도 구분이 어렵다면 Zotero annotation tag `vocab`이 붙은 밑줄만 읽는 메뉴를 사용할 수 있습니다.
 - `고급: 모든 밑줄에서 term candidates 만들기...`는 기존 밑줄을 한 번에 훑는 고급 경로이며, 독서용 밑줄까지 섞일 수 있습니다.
-- 영한 뜻 채우기는 보조 기능입니다. 기본적으로 꺼져 있으며, `google-free` 또는 OpenAI-compatible BYO API provider를 직접 켠 경우에만 외부 번역 요청을 보냅니다.
+- 영한 뜻 채우기는 보조 기능입니다. 기본적으로 꺼져 있으며, `google-free`, OpenAI-compatible BYO API, Gemini BYO API, Claude/Anthropic BYO API provider를 직접 켠 경우에만 외부 번역 요청을 보냅니다.
 - 현재 stable UX 결정은 번역 보조 기능을 메뉴 기반으로 유지하는 것입니다. 별도 settings pane은 provider 설정이 더 복잡해질 때 추가합니다.
 
 ## 권장 흐름
@@ -57,6 +57,12 @@
 
 OpenAI-compatible BYO API를 쓰려면 `Vocab Flow` -> `OpenAI-compatible BYO API 설정...`을 실행합니다. endpoint URL, model 이름, API key를 입력한 뒤 밑줄 문맥 전송 여부를 선택합니다. 문맥 전송을 켜면 각 term과 함께 저장된 밑줄 문맥이 사용자가 설정한 외부 API로 전송됩니다. 문맥 전송을 끄면 term만 전송됩니다.
 
+Gemini를 직접 쓰려면 `Vocab Flow` -> `Gemini BYO API 설정...`을 실행합니다. 기본 endpoint는 Gemini `generateContent` model base URL이며, model 이름과 API key를 입력합니다. 문맥 전송을 켜면 term과 저장된 밑줄 문맥이 Gemini API로 함께 전송됩니다.
+
+Claude/Anthropic을 직접 쓰려면 `Vocab Flow` -> `Claude/Anthropic BYO API 설정...`을 실행합니다. 기본 endpoint는 Anthropic Messages API URL이며, Claude model 이름과 API key를 입력합니다. 문맥 전송을 켜면 term과 저장된 밑줄 문맥이 Anthropic API로 함께 전송됩니다.
+
+Gemini, Claude, 다른 저가 모델을 한 화면에서 바꿔 쓰고 싶다면 직접 provider보다 OpenAI-compatible gateway가 더 편합니다. OpenRouter, LiteLLM proxy, 로컬 LLM proxy처럼 Chat Completions-compatible endpoint를 제공하는 서비스는 `OpenAI-compatible BYO API 설정...`으로 연결합니다.
+
 `빈 Korean meanings 채우기...`는 부모 item을 선택해도 되고, 생성된 `단어장 (...)` 노트를 선택한 상태에서 실행해도 됩니다. 생성 note를 선택한 경우 플러그인이 자동으로 부모 item의 단어장으로 해석합니다.
 
 다시 끄려면 `Vocab Flow` -> `번역 보조 기능 끄기`를 실행합니다. 꺼진 상태에서는 `빈 Korean meanings 채우기...` 명령이 안내 토스트만 띄우고 외부 요청을 보내지 않습니다.
@@ -65,9 +71,9 @@ OpenAI-compatible BYO API를 쓰려면 `Vocab Flow` -> `OpenAI-compatible BYO AP
 
 - `google-free`는 API key가 필요 없는 부정확한 무료 provider입니다.
 - 별도 비용은 없지만, 연구 용어 번역 품질, 안정성, 속도, 한도는 보장되지 않습니다.
-- 현재는 term만 문맥 없이 전송하므로 OCR 오타, 다의어, 전문 용어를 안정적으로 판별하지 못합니다.
+- `google-free`는 같은 실행 안의 중복 term 요청을 줄이지만, 여전히 term만 문맥 없이 전송하므로 OCR 오타, 다의어, 전문 용어를 안정적으로 판별하지 못합니다.
 - 번역 요청 시 영어 단어/구가 외부 Google Translate 엔드포인트로 전송됩니다.
-- OpenAI-compatible BYO API의 API key는 이 머신의 Zotero preference에 저장됩니다.
+- BYO API의 API key는 이 머신의 Zotero preference에 저장됩니다.
 - BYO API에서 문맥 전송을 켜면 미출판 논문 문장 일부가 외부 API로 전송될 수 있습니다. 연구실/출판/계약 정책상 문제가 있으면 문맥 전송을 끄고 term만 보내세요.
 - 실패하거나 차단되면 빈 뜻 칸은 그대로 남습니다.
 - provider가 빈칸을 번역하지 못하면 `번역 결과 없음`으로 알려주며, `빈 뜻 없음`으로 오해시키지 않습니다.
