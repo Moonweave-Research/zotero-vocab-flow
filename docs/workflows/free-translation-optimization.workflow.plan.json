@@ -1,0 +1,285 @@
+{
+  "schema_version": "0.5",
+  "plan_id": "free-translation-optimization-v1",
+  "created_by": "keelplane",
+  "source_prompt": "$keelplane 이제 전체 구현 진행",
+  "activation": {
+    "decision": "activate",
+    "matched_thresholds": [
+      "downstream-consumer",
+      "resumable-handoffs",
+      "adversarial-verification"
+    ],
+    "downgrade_target": null,
+    "reason": "The free translation optimization spans note parsing, provider behavior, persistent preferences, menu UI, tests, docs, and release gates."
+  },
+  "objective": "Implement safe google-free optimization by reusing local/manual meanings, adding bounded persistent cache and failure backoff, adding output quality gates, and exposing a cache-clear path without changing paid/BYO provider behavior.",
+  "surfaces": [
+    {
+      "id": "translator",
+      "kind": "repo",
+      "locator": "src/translator.ts",
+      "access_mode": "write-approved"
+    },
+    {
+      "id": "note-writer",
+      "kind": "repo",
+      "locator": "src/noteWriter.ts",
+      "access_mode": "write-approved"
+    },
+    {
+      "id": "menu",
+      "kind": "repo",
+      "locator": "src/menuManager.ts and addon/locale/*/vocab-flow.ftl",
+      "access_mode": "write-approved"
+    },
+    {
+      "id": "tests",
+      "kind": "repo",
+      "locator": "test/*.test.ts",
+      "access_mode": "write-approved"
+    },
+    {
+      "id": "docs",
+      "kind": "document",
+      "locator": "docs/FREE_TRANSLATION_OPTIMIZATION_SPEC.md and README.md",
+      "access_mode": "write-approved"
+    }
+  ],
+  "assumptions": [
+    {
+      "claim": "Zotero preferences can store a small JSON string cache.",
+      "verification": "Unit tests mock Zotero.Prefs get/set with serialized cache JSON and release check exercises the built bundle."
+    },
+    {
+      "claim": "Current-item manual meaning harvest is safer than global library scanning for this slice.",
+      "verification": "Spec non-goal and tests ensure only the selected generated wordbook note is used."
+    },
+    {
+      "claim": "Paid/BYO providers must keep existing behavior.",
+      "verification": "Existing provider tests plus an explicit behavior-unchanged test for non-google-free menu path."
+    }
+  ],
+  "patterns": [
+    "Sequential",
+    "Adversarial Verify (Against Source)",
+    "Resume And Cache"
+  ],
+  "phases": [
+    {
+      "id": "P1",
+      "name": "Red tests",
+      "entry_criteria": "Spec and current code are readable; no production code for this feature has been written in this slice.",
+      "exit_criteria": "Focused tests fail because free translation memory/cache APIs and menu hooks do not exist."
+    },
+    {
+      "id": "P2",
+      "name": "Memory helper",
+      "entry_criteria": "P1 red tests identify missing cache/normalization/quality gate behavior.",
+      "exit_criteria": "Pure memory/cache tests pass without touching note or menu code."
+    },
+    {
+      "id": "P3",
+      "name": "Google-free provider integration",
+      "entry_criteria": "P2 helper is green.",
+      "exit_criteria": "Translator tests cover persistent cache hits, success storage, failure markers, rate-limit markers, and rejected output."
+    },
+    {
+      "id": "P4",
+      "name": "Wordbook local-memory fill",
+      "entry_criteria": "P3 provider behavior is green.",
+      "exit_criteria": "Note writer tests prove current-note manual meanings and persistent cache fill blanks without network calls."
+    },
+    {
+      "id": "P5",
+      "name": "Menu and docs",
+      "entry_criteria": "P4 note behavior is green.",
+      "exit_criteria": "Menu tests cover cache clear and google-free-only routing; docs match implemented behavior."
+    },
+    {
+      "id": "P6",
+      "name": "Verification and review",
+      "entry_criteria": "All implementation phases are green.",
+      "exit_criteria": "npm run release:check passes and git diff excludes unrelated artifacts."
+    }
+  ],
+  "workers": [
+    {
+      "id": "main-codex",
+      "role": "implementation owner",
+      "tool_permissions": {
+        "read": true,
+        "write": true,
+        "shell": true,
+        "network": false,
+        "mcp_connectors": [],
+        "requires_escalation_for": []
+      },
+      "forbidden_actions": [
+        "force push",
+        "hard reset",
+        "delete unrelated files",
+        "commit .playwright-mcp",
+        "send live translation API calls"
+      ],
+      "context_budget": {
+        "max_files": 12,
+        "max_tokens": 60000,
+        "must_include": [
+          "docs/FREE_TRANSLATION_OPTIMIZATION_SPEC.md",
+          "src/translator.ts",
+          "src/noteWriter.ts",
+          "src/menuManager.ts",
+          "test/translator.test.ts",
+          "test/noteWriter.test.ts",
+          "test/menuManager.test.ts"
+        ],
+        "must_exclude": [
+          ".playwright-mcp"
+        ]
+      },
+      "prompt_contract": {
+        "inputs": [
+          "repository path",
+          "free translation optimization spec"
+        ],
+        "required_output_schema": "patch plus verification log",
+        "stop_conditions": [
+          "release:check passes",
+          "same failure repeats three times",
+          "implementation would require dependency or live API key"
+        ]
+      },
+      "ownership": [
+        "free translation implementation",
+        "tests",
+        "docs"
+      ]
+    }
+  ],
+  "handoffs": [
+    {
+      "from_phase": "P1",
+      "to_phase": "P2",
+      "artifact": "red test output",
+      "artifact_schema": {
+        "format": "test-log",
+        "required_fields": [
+          "failing tests",
+          "failure reason"
+        ],
+        "validation_command": "npm run test:unit"
+      }
+    },
+    {
+      "from_phase": "P5",
+      "to_phase": "P6",
+      "artifact": "implemented diff",
+      "artifact_schema": {
+        "format": "patch",
+        "required_fields": [
+          "changed files",
+          "test coverage",
+          "docs updates"
+        ],
+        "validation_command": "git diff --check && npm run release:check"
+      }
+    }
+  ],
+  "parallelism": {
+    "shape": "pipeline",
+    "cap": 1,
+    "fan_in_rule": "Run implementation serially because tests and production files share the same small surfaces.",
+    "barriers": [
+      "P1 red tests before production code",
+      "P6 release gate before completion claim"
+    ]
+  },
+  "verification": [
+    {
+      "claim_or_output": "google-free avoids repeated local/manual/cacheable requests",
+      "falsifier": "A test observes fetch called when current-note or persistent cache contains the meaning.",
+      "evidence_required": "noteWriter and translator tests pass."
+    },
+    {
+      "claim_or_output": "failure backoff prevents repeated blocked terms",
+      "falsifier": "A fresh failure marker still allows fetch for the same normalized term.",
+      "evidence_required": "translator or memory helper tests pass."
+    },
+    {
+      "claim_or_output": "paid/BYO providers unchanged",
+      "falsifier": "OpenAI-compatible, Gemini, or Anthropic tests fail or route through free cache.",
+      "evidence_required": "full unit suite passes."
+    },
+    {
+      "claim_or_output": "release surface is coherent",
+      "falsifier": "XPI hash, manifest, update manifest, or docs mismatch.",
+      "evidence_required": "npm run release:check passes."
+    }
+  ],
+  "risk_gates": [
+    {
+      "trigger": "Adding dependencies",
+      "safe_default": "Do not add dependencies.",
+      "requires_user_approval": true
+    },
+    {
+      "trigger": "Live external translation API calls",
+      "safe_default": "Use mocked fetch only.",
+      "requires_user_approval": true
+    },
+    {
+      "trigger": "Publishing or tagging a release",
+      "safe_default": "Implement and verify locally only.",
+      "requires_user_approval": true
+    },
+    {
+      "trigger": "Deleting unrelated untracked files",
+      "safe_default": "Leave unrelated files untouched.",
+      "requires_user_approval": true
+    }
+  ],
+  "budget": {
+    "agents": 1,
+    "max_rounds": 6,
+    "max_retries_per_failure": 2,
+    "time_cap_minutes": 90,
+    "file_touch_limit": 14
+  },
+  "resume": {
+    "cacheable_artifacts": [
+      "workflow plan",
+      "spec",
+      "red test output",
+      "release check output"
+    ],
+    "invalidation_rules": [
+      "Changing src/noteWriter.ts invalidates note tests.",
+      "Changing src/translator.ts invalidates translator tests.",
+      "Changing menu labels invalidates menu tests and locale checks."
+    ],
+    "restart_points": [
+      "P1",
+      "P3",
+      "P6"
+    ]
+  },
+  "execution_path": {
+    "mode": "direct-codex",
+    "consumer": "human",
+    "first_slice": {
+      "instruction": "Add failing tests for free translation memory/cache behavior before writing production code.",
+      "inputs": [
+        "repository path",
+        "docs/FREE_TRANSLATION_OPTIMIZATION_SPEC.md"
+      ],
+      "expected_output": "red unit-test output showing missing freeTranslationMemory and google-free memory fill APIs",
+      "completion_check": "npm run test:unit fails for the new tests for the expected missing APIs",
+      "forbidden_actions": [
+        "production code before red tests",
+        "live API calls",
+        "committing unrelated .playwright-mcp files"
+      ]
+    }
+  }
+}

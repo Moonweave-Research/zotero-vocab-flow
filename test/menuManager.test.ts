@@ -49,12 +49,14 @@ test('registers menu commands for user-facing translation provider control', () 
 
   const l10nIDs = registered.menus[0].menus.map((menu: any) => menu.l10nID);
   assert.ok(l10nIDs.includes('vocab-flow-translation-enable-google-free'));
+  assert.ok(l10nIDs.includes('vocab-flow-translation-clear-google-free-cache'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-configure-openai-compatible'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-configure-gemini'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-configure-anthropic'));
   assert.ok(l10nIDs.includes('vocab-flow-translation-disable'));
   const labels = registered.menus[0].menus.map((menu: any) => menu.label);
   assert.ok(labels.includes('부정확할 수 있는 무료 번역 보조 기능 켜기...'));
+  assert.ok(labels.includes('무료 번역 캐시 비우기'));
   assert.ok(labels.includes('OpenAI-compatible BYO API 설정...'));
   assert.ok(labels.includes('Gemini BYO API 설정...'));
   assert.ok(labels.includes('Claude/Anthropic BYO API 설정...'));
@@ -142,6 +144,23 @@ test('does not configure OpenAI-compatible BYO API when setup is canceled', asyn
 
   assert.deepEqual(saved, []);
   assert.equal(toasts[0], 'OpenAI-compatible BYO API 설정을 취소했습니다');
+});
+
+test('clears the google-free translation cache through the menu', async () => {
+  const toasts: string[] = [];
+  let cleared = false;
+  const manager = new VocabFlowMenuManager({
+    extractForItem: async () => ({ status: 'empty' }),
+    clearGoogleFreeTranslationCache: () => {
+      cleared = true;
+    },
+    toast: (message: string) => { toasts.push(message); }
+  });
+
+  await manager.runClearGoogleFreeTranslationCacheForTesting();
+
+  assert.equal(cleared, true);
+  assert.equal(toasts[0], '무료 번역 캐시를 비웠습니다');
 });
 
 test('configures Gemini BYO API translation through the menu', async () => {

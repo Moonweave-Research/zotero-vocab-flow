@@ -2,7 +2,8 @@ import { Logger } from './Logger';
 import { AcceptResult, acceptCandidatesForItem } from './candidateAccepter';
 import { countAcceptedCandidateLabels as defaultCandidateCounter } from './candidateNoteWriter';
 import { DEFAULT_CANDIDATE_COLOR, DEFAULT_CANDIDATE_TAG, ReadUnderlineOptions, describeCandidateColor } from './annotationReader';
-import { FillMeaningsResult, countMissingMeanings as defaultMissingMeaningCounter, fillMissingMeanings as defaultMeaningFiller } from './noteWriter';
+import { FillMeaningsResult, countMissingMeanings as defaultMissingMeaningCounter, fillMissingMeanings as defaultMeaningFiller, fillMissingMeaningsWithGoogleFreeMemory } from './noteWriter';
+import { clearGoogleFreeTranslationCache as defaultClearGoogleFreeTranslationCache } from './freeTranslationMemory';
 import {
   AnthropicTranslationSettings,
   GeminiTranslationSettings,
@@ -49,6 +50,7 @@ interface MenuDeps {
   confirmExternalTranslation?: (provider: Exclude<TranslationProvider, 'off'>) => boolean;
   confirmLargeTranslation?: (itemCount: number, wordCount: number) => boolean;
   translateMissingMeaningsForItem?: (item: any) => Promise<FillMeaningsResult>;
+  clearGoogleFreeTranslationCache?: () => void;
   showGeneratedNote?: (noteID: number) => void;
   toast: (message: string) => void;
 }
@@ -72,8 +74,10 @@ const DEFAULT_DEPS: MenuDeps = {
   confirmLargeTranslation: confirmLargeTranslation,
   translateMissingMeaningsForItem: (item: any) => {
     const translator = createTranslatorFromPrefs();
-    return defaultMeaningFiller(item, (words) => translator.translate(words));
+    const fill = translator.provider === 'google-free' ? fillMissingMeaningsWithGoogleFreeMemory : defaultMeaningFiller;
+    return fill(item, (words) => translator.translate(words));
   },
+  clearGoogleFreeTranslationCache: defaultClearGoogleFreeTranslationCache,
   showGeneratedNote: showGeneratedNote,
   toast: defaultToast
 };
@@ -143,6 +147,12 @@ export class VocabFlowMenuManager {
                 l10nID: 'vocab-flow-translation-enable-google-free',
                 label: '부정확할 수 있는 무료 번역 보조 기능 켜기...',
                 onCommand: () => this.handleCommand('translation-enable', () => this.runEnableGoogleFreeTranslation())
+              },
+              {
+                menuType: 'menuitem',
+                l10nID: 'vocab-flow-translation-clear-google-free-cache',
+                label: '무료 번역 캐시 비우기',
+                onCommand: () => this.handleCommand('translation-clear-cache', () => this.runClearGoogleFreeTranslationCache())
               },
               {
                 menuType: 'menuitem',
@@ -221,11 +231,15 @@ export class VocabFlowMenuManager {
     await this.runConfigureAnthropicTranslation();
   }
 
+  public async runClearGoogleFreeTranslationCacheForTesting() {
+    await this.runClearGoogleFreeTranslationCache();
+  }
+
   public async runDisableTranslationForTesting() {
     await this.runDisableTranslation();
   }
 
-  private handleCommand(name: 'extract' | 'accept' | 'translate' | 'translation-enable' | 'translation-configure' | 'translation-disable', run: () => Promise<void>) {
+  private handleCommand(name: 'extract' | 'accept' | 'translate' | 'translation-enable' | 'translation-configure' | 'translation-clear-cache' | 'translation-disable', run: () => Promise<void>) {
     Logger.log(`menu command received: ${name}`);
     return run().catch((e) => {
       Logger.error(`menu command failed: ${name}`, e);
@@ -432,6 +446,12 @@ export class VocabFlowMenuManager {
     this.deps.toast(settings.sendContext
       ? 'Claude/Anthropic BYO API를 켰습니다. 번역 시 밑줄 문맥을 함께 전송합니다'
       : 'Claude/Anthropic BYO API를 켰습니다. 번역 시 용어만 전송합니다');
+  }
+
+  private async runClearGoogleFreeTranslationCache() {
+    const clearCache = this.deps.clearGoogleFreeTranslationCache ?? DEFAULT_DEPS.clearGoogleFreeTranslationCache;
+    clearCache!();
+    this.deps.toast('무료 번역 캐시를 비웠습니다');
   }
 
   private async runDisableTranslation() {

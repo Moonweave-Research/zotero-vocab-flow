@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fillMissingMeanings, writeVocabNote, VOCAB_TAG } from '../src/noteWriter';
+import { fillMissingMeanings, fillMissingMeaningsWithGoogleFreeMemory, writeVocabNote, VOCAB_TAG } from '../src/noteWriter';
+import { GOOGLE_FREE_CACHE_PREF } from '../src/freeTranslationMemory';
 
 function fakeNote(existingTags: string[] = []) {
   const tags = new Set(existingTags);
@@ -235,6 +236,103 @@ test('fills only missing Korean meanings in the generated vocab note', async () 
   assert.match(existing.note, /data-vocab-flow-word="polymer"><td>polymer<\/td><td>고분자<\/td>/);
   assert.match(existing.note, /data-vocab-flow-word="actuator"><td>actuator<\/td><td>액추에이터<\/td>/);
   assert.ok(existing.saved);
+});
+
+test('fills google-free blanks from the same wordbook note without fetching', async () => {
+  const prefs = new Map<string, unknown>();
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<section data-vocab-flow="words">',
+    '<h2>Vocab (2)</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-word="polymer"><td>polymer</td><td>고분자</td></tr>',
+    '<tr data-vocab-flow-word="Polymer."><td>Polymer.</td><td></td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) },
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+
+  const result = await fillMissingMeaningsWithGoogleFreeMemory({ id: 5, getNotes: () => [99] }, async () => {
+    throw new Error('google-free fetch should not be needed');
+  });
+
+  const cache = JSON.parse(String(prefs.get(GOOGLE_FREE_CACHE_PREF)));
+  assert.deepEqual(result, { status: 'translated', translatedCount: 1 });
+  assert.match(existing.note, /data-vocab-flow-word="Polymer\."><td>Polymer\.<\/td><td>고분자<\/td>/);
+  assert.equal(cache.entries.polymer.source, 'manual');
+});
+
+test('fills google-free blanks from persistent cache without fetching', async () => {
+  const prefs = new Map<string, unknown>([
+    [GOOGLE_FREE_CACHE_PREF, JSON.stringify({
+      version: 1,
+      entries: {
+        actuator: {
+          meaning: '액추에이터',
+          source: 'google-free',
+          createdAt: Date.now(),
+          lastUsedAt: Date.now()
+        }
+      },
+      failures: {}
+    })]
+  ]);
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<section data-vocab-flow="words">',
+    '<h2>Vocab (1)</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-word="Actuator"><td>Actuator</td><td></td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) },
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+
+  const result = await fillMissingMeaningsWithGoogleFreeMemory({ id: 5, getNotes: () => [99] }, async () => {
+    throw new Error('google-free fetch should not be needed');
+  });
+
+  assert.deepEqual(result, { status: 'translated', translatedCount: 1 });
+  assert.match(existing.note, /data-vocab-flow-word="Actuator"><td>Actuator<\/td><td>액추에이터<\/td>/);
+});
+
+test('does not mutate google-free cache when there are no blank meanings', async () => {
+  const prefs = new Map<string, unknown>();
+  const existing = fakeNote([VOCAB_TAG]);
+  existing.note = [
+    '<section data-vocab-flow="words">',
+    '<h2>Vocab (1)</h2>',
+    '<table><tbody>',
+    '<tr data-vocab-flow-word="polymer"><td>polymer</td><td>고분자</td></tr>',
+    '</tbody></table>',
+    '</section>'
+  ].join('');
+  (globalThis as any).Zotero = {
+    Items: { get: (id: number) => (id === 99 ? existing : null) },
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+
+  const result = await fillMissingMeaningsWithGoogleFreeMemory({ id: 5, getNotes: () => [99] }, async () => {
+    throw new Error('translator should not be called');
+  });
+
+  assert.deepEqual(result, { status: 'empty' });
+  assert.equal(prefs.has(GOOGLE_FREE_CACHE_PREF), false);
 });
 
 test('does not call translator when all Korean meanings are already filled', async () => {

@@ -1,6 +1,14 @@
 // Writes/updates a single tagged child note holding the vocab list.
 // Spec §4.6 (1): idempotent via tag marker; never duplicates the note.
 
+import {
+  getCachedFreeTranslation,
+  hasFreshGoogleFreeFailure,
+  loadGoogleFreeTranslationCache,
+  rememberManualFreeTranslation,
+  saveGoogleFreeTranslationCache
+} from './freeTranslationMemory';
+
 export const VOCAB_TAG = '_vocab-extract';
 const GENERATED_SECTION_PATTERN = /<section data-vocab-flow="words">[\s\S]*?<\/section>/;
 const GENERATED_SANITIZED_BLOCK_PATTERN = /<h2[^>]*>[\s\S]*?Vocab Flow Wordbook[\s\S]*?<\/h2>\s*<table[\s\S]*?<\/table>/;
@@ -51,6 +59,54 @@ export async function fillMissingMeanings(parent: any, translate: (terms: Meanin
   if (!missingTerms.length) return { status: 'empty' };
 
   const translations = await translate(missingTerms);
+  const filled = applyTranslationsToWordbookHtml(existingHtml, translations);
+  if (!filled.translatedCount) return { status: 'untranslated', missingCount: missingTerms.length };
+  note.setNote(filled.html);
+  await note.saveTx();
+  return { status: 'translated', translatedCount: filled.translatedCount };
+}
+
+export async function fillMissingMeaningsWithGoogleFreeMemory(parent: any, translate: (terms: MeaningFillTerm[]) => Promise<Map<string, string>>): Promise<FillMeaningsResult> {
+  const note = findExistingNote(parent);
+  if (!note) return { status: 'empty' };
+
+  const existingHtml = getNoteHtml(note);
+  const missingTerms = extractMissingMeaningTerms(existingHtml);
+  if (!missingTerms.length) return { status: 'empty' };
+
+  const now = Date.now();
+  const cache = loadGoogleFreeTranslationCache();
+  for (const term of extractFilledMeaningTerms(existingHtml)) {
+    rememberManualFreeTranslation(cache, term.word, term.meaning, now);
+  }
+
+  const translations = new Map<string, string>();
+  const networkTerms: MeaningFillTerm[] = [];
+  for (const term of missingTerms) {
+    const cached = getCachedFreeTranslation(cache, term.word, now);
+    if (cached) {
+      translations.set(term.word, cached);
+      continue;
+    }
+    if (!hasFreshGoogleFreeFailure(cache, term.word, now)) networkTerms.push(term);
+  }
+  saveGoogleFreeTranslationCache(cache, now);
+
+  if (networkTerms.length) {
+    const networkTranslations = await translate(networkTerms);
+    for (const [word, meaning] of networkTranslations.entries()) {
+      translations.set(word, meaning);
+    }
+  }
+
+  const filled = applyTranslationsToWordbookHtml(existingHtml, translations);
+  if (!filled.translatedCount) return { status: 'untranslated', missingCount: missingTerms.length };
+  note.setNote(filled.html);
+  await note.saveTx();
+  return { status: 'translated', translatedCount: filled.translatedCount };
+}
+
+function applyTranslationsToWordbookHtml(existingHtml: string, translations: Map<string, string>): { html: string; translatedCount: number } {
   let translatedCount = 0;
   const updatedHtml = existingHtml.replace(
     /(<tr[^>]*data-vocab-flow-word="([^"]*)"[^>]*>\s*<td[^>]*>[\s\S]*?<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>\s*<\/tr>)/g,
@@ -66,10 +122,7 @@ export async function fillMissingMeanings(parent: any, translate: (terms: Meanin
 
   const fallback = fillPlainWordbookMeanings(updatedHtml, translations);
   translatedCount += fallback.translatedCount;
-  if (!translatedCount) return { status: 'untranslated', missingCount: missingTerms.length };
-  note.setNote(fallback.html);
-  await note.saveTx();
-  return { status: 'translated', translatedCount };
+  return { html: fallback.html, translatedCount };
 }
 
 export function countMissingMeanings(parent: any): number {
@@ -198,6 +251,27 @@ function extractMissingMeaningTerms(html: string): MeaningFillTerm[] {
     seen.add(key);
     if (normalizeCellText(row.meaningHtml)) continue;
     terms.push({ word: row.word });
+  }
+  return terms;
+}
+
+function extractFilledMeaningTerms(html: string): Array<{ word: string; meaning: string }> {
+  const terms: Array<{ word: string; meaning: string }> = [];
+  const seen = new Set<string>();
+  const rowPattern = /<tr[^>]*data-vocab-flow-word="([^"]*)"[^>]*>\s*<td[^>]*>[\s\S]*?<\/td>\s*<td[^>]*>([\s\S]*?)<\/td>\s*<\/tr>/g;
+  for (const match of html.matchAll(rowPattern)) {
+    const word = decodeHtml(match[1]);
+    const key = word.toLowerCase();
+    seen.add(key);
+    const meaning = normalizeCellText(match[2]);
+    if (meaning) terms.push({ word, meaning });
+  }
+  for (const row of extractPlainWordbookRows(html)) {
+    const key = row.word.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const meaning = normalizeCellText(row.meaningHtml);
+    if (meaning) terms.push({ word: row.word, meaning });
   }
   return terms;
 }

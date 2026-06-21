@@ -1,5 +1,15 @@
 # Release Checklist
 
+## v0.1.4-beta
+
+- [x] Version set to `0.1.4` in `package.json`, `package-lock.json`, and `addon/manifest.json`.
+- [x] `google-free` reuses same-note manual meanings before external requests.
+- [x] `google-free` stores a bounded persistent term cache in Zotero preferences without source context.
+- [x] Fresh failure markers skip repeated blocked/rate-limited/bad free translation requests for 24 hours.
+- [x] Obvious bad free-provider output is rejected instead of filling cells.
+- [x] User-facing free translation cache clear command added.
+- [x] `npm run release:check` validates test, typecheck, build, version sync, XPI manifest, icon size, update manifest, update hash, and release process documentation.
+
 ## v0.1.3-beta
 
 - [x] Version set to `0.1.3` in `package.json`, `package-lock.json`, and `addon/manifest.json`.

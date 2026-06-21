@@ -20,9 +20,9 @@ test('release check validates the current repository release surface', () => {
   const result = runChecks({ requireXpi: false });
 
   assert.deepEqual(result.failures, []);
-  assert.ok(result.checks.includes('package and manifest versions match: 0.1.3'));
+  assert.ok(result.checks.includes('package and manifest versions match: 0.1.4'));
   assert.ok(result.checks.includes('addon/icon.png is 48x48'));
-  assert.ok(result.checks.includes('updates.json contains update entry for 0.1.3'));
+  assert.ok(result.checks.includes('updates.json contains update entry for 0.1.4'));
   assert.ok(result.checks.includes('docs/RELEASE_PROCESS.md defines the release artifact and checksum policy'));
 });
 

@@ -7,7 +7,7 @@
 
 Zotero Vocab Flow is a Zotero 9 plugin that turns intentional PDF underline annotations into reviewable vocabulary candidates, then saves selected terms into a clean vocabulary note.
 
-Current release: `v0.1.3-beta.1`. This is a prerelease for researcher workflow validation, not a stable public release.
+Current release: `v0.1.4-beta.1`. This is a prerelease for researcher workflow validation, not a stable public release.
 
 ## Why It Exists
 
@@ -33,7 +33,7 @@ Research underlines are noisy. Some underlines mark important sentences, some ma
 
 ## Install
 
-1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease: [v0.1.3-beta.1](https://github.com/Moonweave-Research/zotero-vocab-flow/releases/tag/v0.1.3-beta.1).
+1. Download `zotero-vocab-flow.xpi` from the latest GitHub prerelease: [v0.1.4-beta.1](https://github.com/Moonweave-Research/zotero-vocab-flow/releases/tag/v0.1.4-beta.1).
 2. In Zotero, open `Tools` -> `Plugins`.
 3. Click the gear menu and choose `Install Plugin From File`.
 4. Select the XPI and restart Zotero if prompted.
@@ -67,6 +67,7 @@ Translation is not the core product promise. It is an optional aid.
 - It only fills blank `Korean meaning` cells.
 - It preserves manually entered meanings.
 - The `google-free` provider is an inaccurate free aid. It sends terms without source context, may be blocked or rate-limited, and must be reviewed manually.
+- `google-free` now reuses current-note manual meanings, persistent term cache entries, and short-lived failure markers to reduce repeated calls. The cache stores term-to-meaning pairs only, never source context, and can be cleared from the Vocab Flow menu.
 - The OpenAI-compatible BYO API provider sends terms to the endpoint you configure. Use this for OpenAI, OpenRouter, LiteLLM, local proxies, and other Chat Completions-compatible gateways. You can choose whether stored underline context is sent with each term.
 - The Gemini BYO API provider sends terms directly to a Gemini `generateContent` endpoint.
 - The Claude/Anthropic BYO API provider sends terms directly to Anthropic's Messages API.
@@ -82,12 +83,12 @@ Translation is not the core product promise. It is an optional aid.
 
 ## Release Status
 
-Current release: `v0.1.3-beta.1`
+Current release: `v0.1.4-beta.1`
 
 Verified:
 
 - `npm run release:check` -> passing. This includes unit tests, TypeScript check, XPI build, XPI manifest/version validation, update manifest validation, and XPI SHA-256 validation.
-- New Gemini and Claude/Anthropic provider request paths are covered by mocked API-shape tests; no paid live provider call is required for this prerelease gate.
+- Free translation memory, failure backoff, quality gates, and clear-cache behavior are covered by mocked unit tests; no live Google/free or paid provider call is required for this prerelease gate.
 - Existing core Zotero runtime validation covers menu loading, all six annotation colors, candidate generation, accept flow, OpenAI-compatible BYO callback against a localhost mock endpoint, cleanup, installed XPI hash match, and DB read-only cleanup checks.
 
 Known limits:
@@ -100,7 +101,8 @@ Known limits:
 - [Install Guide](docs/INSTALL.md)
 - [Usage Guide](docs/USAGE.md)
 - [Product Spec](docs/SPEC.md)
-- [Release Notes](docs/RELEASE_NOTES_v0.1.3-beta.md)
+- [Free Translation Optimization Spec](docs/FREE_TRANSLATION_OPTIMIZATION_SPEC.md)
+- [Release Notes](docs/RELEASE_NOTES_v0.1.4-beta.md)
 - [Release Process](docs/RELEASE_PROCESS.md)
 - [Release Checklist](docs/RELEASE_CHECKLIST.md)
 

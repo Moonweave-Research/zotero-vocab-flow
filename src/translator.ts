@@ -1,3 +1,14 @@
+import {
+  GoogleFreeFailureReason,
+  getCachedFreeTranslation,
+  hasFreshGoogleFreeFailure,
+  loadGoogleFreeTranslationCache,
+  normalizeFreeTranslationKey,
+  rememberGoogleFreeFailure,
+  rememberGoogleFreeTranslation,
+  saveGoogleFreeTranslationCache
+} from './freeTranslationMemory';
+
 export type TranslationProvider = 'off' | 'google-free' | 'openai-compatible' | 'gemini' | 'anthropic';
 
 export interface TranslationInput {
@@ -127,29 +138,40 @@ class OffTranslator implements Translator {
 
 class GoogleFreeTranslator implements Translator {
   provider: TranslationProvider = 'google-free';
-  private cache = new Map<string, string>();
 
   async translate(words: TranslationInputLike[]): Promise<Map<string, string>> {
     const translations = new Map<string, string>();
     const seen = new Set<string>();
+    const cache = loadGoogleFreeTranslationCache();
+    const now = Date.now();
     for (const input of normalizeTranslationInputs(words)) {
-      if (seen.has(input.word)) continue;
-      seen.add(input.word);
-      const cached = this.cache.get(input.word);
+      const key = normalizeFreeTranslationKey(input.word);
+      if (!key) continue;
+      const cached = getCachedFreeTranslation(cache, input.word, now);
       if (cached) {
         translations.set(input.word, cached);
         continue;
       }
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (hasFreshGoogleFreeFailure(cache, input.word, now)) continue;
       try {
         const translated = await translateWithGoogleFree(input.word);
-        if (translated) {
-          this.cache.set(input.word, translated);
-          translations.set(input.word, translated);
+        if (!translated) {
+          rememberGoogleFreeFailure(cache, input.word, 'empty', now);
+          continue;
         }
-      } catch (_e) {
+        if (rememberGoogleFreeTranslation(cache, input.word, translated, now)) {
+          translations.set(input.word, translated);
+        } else {
+          rememberGoogleFreeFailure(cache, input.word, 'rejected', now);
+        }
+      } catch (e) {
+        rememberGoogleFreeFailure(cache, input.word, googleFreeFailureReason(e), now);
         // Keep partial results; one blocked/rate-limited term should not discard earlier meanings.
       }
     }
+    saveGoogleFreeTranslationCache(cache, now);
     return translations;
   }
 }
@@ -334,12 +356,23 @@ async function translateWithGoogleFree(word: string): Promise<string> {
     q: word
   });
   const response = await fetchWithTimeout(`https://translate.googleapis.com/translate_a/single?${params.toString()}`, REQUEST_TIMEOUT_MS);
-  if (!response.ok) throw new Error(`translation request failed: ${response.status}`);
+  if (!response.ok) throw new GoogleFreeRequestError(response.status);
   const json = await response.json();
   const translated = Array.isArray(json?.[0])
     ? json[0].map((part: any) => Array.isArray(part) ? part[0] : '').join('')
     : '';
   return String(translated).trim();
+}
+
+class GoogleFreeRequestError extends Error {
+  constructor(public status: number) {
+    super(`translation request failed: ${status}`);
+  }
+}
+
+function googleFreeFailureReason(error: unknown): GoogleFreeFailureReason {
+  if (error instanceof GoogleFreeRequestError && error.status === 429) return 'rate-limit';
+  return 'network';
 }
 
 async function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit): Promise<Response> {

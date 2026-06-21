@@ -55,6 +55,8 @@
 
 부정확할 수 있는 무료 번역 보조 기능을 켜려면 item을 우클릭하고 `Vocab Flow` -> `부정확할 수 있는 무료 번역 보조 기능 켜기...`를 실행합니다. 확인 창에서 외부 전송 및 품질 한계 안내를 승인하면 이후 `빈 Korean meanings 채우기...`를 사용할 수 있습니다.
 
+`google-free` 경로는 외부 요청 전에 현재 단어장 노트의 이미 채워진 뜻과 Vocab Flow의 무료 번역 캐시를 먼저 확인합니다. 캐시는 term-to-meaning 쌍과 짧은 실패 기록만 저장하며, 밑줄 문맥은 저장하지 않습니다. 캐시를 지우려면 `Vocab Flow` -> `무료 번역 캐시 비우기`를 실행합니다. 번역 보조 기능을 끄는 것만으로 캐시는 삭제되지 않습니다.
+
 OpenAI-compatible BYO API를 쓰려면 `Vocab Flow` -> `OpenAI-compatible BYO API 설정...`을 실행합니다. endpoint URL, model 이름, API key를 입력한 뒤 밑줄 문맥 전송 여부를 선택합니다. 문맥 전송을 켜면 각 term과 함께 저장된 밑줄 문맥이 사용자가 설정한 외부 API로 전송됩니다. 문맥 전송을 끄면 term만 전송됩니다.
 
 Gemini를 직접 쓰려면 `Vocab Flow` -> `Gemini BYO API 설정...`을 실행합니다. 기본 endpoint는 Gemini `generateContent` model base URL이며, model 이름과 API key를 입력합니다. 문맥 전송을 켜면 term과 저장된 밑줄 문맥이 Gemini API로 함께 전송됩니다.
@@ -71,7 +73,7 @@ Gemini, Claude, 다른 저가 모델을 한 화면에서 바꿔 쓰고 싶다면
 
 - `google-free`는 API key가 필요 없는 부정확한 무료 provider입니다.
 - 별도 비용은 없지만, 연구 용어 번역 품질, 안정성, 속도, 한도는 보장되지 않습니다.
-- `google-free`는 같은 실행 안의 중복 term 요청을 줄이지만, 여전히 term만 문맥 없이 전송하므로 OCR 오타, 다의어, 전문 용어를 안정적으로 판별하지 못합니다.
+- `google-free`는 같은 실행 안의 중복 term, 이전 성공 캐시, 같은 단어장 안의 수동 뜻을 재사용하고 최근 실패 term은 잠시 건너뜁니다. 그래도 term만 문맥 없이 전송하므로 OCR 오타, 다의어, 전문 용어를 안정적으로 판별하지 못합니다.
 - 번역 요청 시 영어 단어/구가 외부 Google Translate 엔드포인트로 전송됩니다.
 - BYO API의 API key는 이 머신의 Zotero preference에 저장됩니다.
 - BYO API에서 문맥 전송을 켜면 미출판 논문 문장 일부가 외부 API로 전송될 수 있습니다. 연구실/출판/계약 정책상 문제가 있으면 문맥 전송을 끄고 term만 보내세요.

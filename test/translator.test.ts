@@ -6,6 +6,7 @@ import {
   setGeminiTranslationPrefs,
   setOpenAICompatibleTranslationPrefs
 } from '../src/translator';
+import { GOOGLE_FREE_CACHE_PREF } from '../src/freeTranslationMemory';
 
 test('keeps translation disabled by default', async () => {
   let fetched = false;
@@ -90,6 +91,165 @@ test('deduplicates repeated Google free terms during one translation run', async
 
   assert.equal(result.get('polymer'), '고분자');
   assert.equal(urls.length, 1);
+});
+
+test('fills normalized Google free duplicates after one request', async () => {
+  const urls: string[] = [];
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free']
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async (url: string) => {
+    urls.push(url);
+    return {
+      ok: true,
+      json: async () => [[['고분자', 'polymer', null, null]]]
+    };
+  };
+
+  const result = await createTranslatorFromPrefs().translate(['polymer', 'Polymer.']);
+
+  assert.equal(result.get('polymer'), '고분자');
+  assert.equal(result.get('Polymer.'), '고분자');
+  assert.equal(urls.length, 1);
+});
+
+test('stores successful Google free translations in the persistent cache', async () => {
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free']
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async () => ({
+    ok: true,
+    json: async () => [[['고분자', 'polymer', null, null]]]
+  });
+
+  await createTranslatorFromPrefs().translate(['polymer']);
+
+  const cache = JSON.parse(String(prefs.get(GOOGLE_FREE_CACHE_PREF)));
+  assert.equal(cache.entries.polymer.meaning, '고분자');
+  assert.equal(cache.entries.polymer.source, 'google-free');
+});
+
+test('reuses persistent Google free cache entries without fetching', async () => {
+  let fetched = false;
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free'],
+    [GOOGLE_FREE_CACHE_PREF, JSON.stringify({
+      version: 1,
+      entries: {
+        polymer: {
+          meaning: '고분자',
+          source: 'google-free',
+          createdAt: Date.now(),
+          lastUsedAt: Date.now()
+        }
+      },
+      failures: {}
+    })]
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async () => {
+    fetched = true;
+    throw new Error('should not fetch');
+  };
+
+  const result = await createTranslatorFromPrefs().translate(['Polymer.']);
+
+  assert.equal(result.get('Polymer.'), '고분자');
+  assert.equal(fetched, false);
+});
+
+test('skips Google free requests with a fresh failure marker', async () => {
+  let fetched = false;
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free'],
+    [GOOGLE_FREE_CACHE_PREF, JSON.stringify({
+      version: 1,
+      entries: {},
+      failures: {
+        actuator: {
+          reason: 'rate-limit',
+          failedAt: Date.now()
+        }
+      }
+    })]
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async () => {
+    fetched = true;
+    throw new Error('should not fetch');
+  };
+
+  const result = await createTranslatorFromPrefs().translate(['actuator']);
+
+  assert.deepEqual(result, new Map());
+  assert.equal(fetched, false);
+});
+
+test('records Google free rate-limit failures', async () => {
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free']
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async () => ({
+    ok: false,
+    status: 429,
+    json: async () => ({})
+  });
+
+  const result = await createTranslatorFromPrefs().translate(['actuator']);
+
+  const cache = JSON.parse(String(prefs.get(GOOGLE_FREE_CACHE_PREF)));
+  assert.deepEqual(result, new Map());
+  assert.equal(cache.failures.actuator.reason, 'rate-limit');
+});
+
+test('rejects unchanged Google free output and records a rejected failure', async () => {
+  const prefs = new Map<string, unknown>([
+    ['extensions.vocabflow.translation.provider', 'google-free']
+  ]);
+  (globalThis as any).Zotero = {
+    Prefs: {
+      get: (key: string) => prefs.get(key),
+      set: (key: string, value: unknown) => prefs.set(key, value)
+    }
+  };
+  (globalThis as any).fetch = async () => ({
+    ok: true,
+    json: async () => [[['polymer', 'polymer', null, null]]]
+  });
+
+  const result = await createTranslatorFromPrefs().translate(['polymer']);
+
+  const cache = JSON.parse(String(prefs.get(GOOGLE_FREE_CACHE_PREF)));
+  assert.deepEqual(result, new Map());
+  assert.equal(cache.failures.polymer.reason, 'rejected');
 });
 
 test('uses an OpenAI-compatible provider with optional source context', async () => {
